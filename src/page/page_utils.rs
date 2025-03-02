@@ -27,5 +27,5 @@ pub enum PageType {
 }
 
 pub enum Page {
-    TableLeaf(TableLeafCell),
+    TableLeaf(TableLeafPage),
 }
