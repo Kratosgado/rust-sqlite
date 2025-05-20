@@ -21,6 +21,7 @@ const PAGE_FRAGMENTED_BYTES_COUNT_OFFSET: usize = 7;
 
 const PAGE_MAX_SIZE: u32 = 65536;
 
+/// pager reads and caches pages from the db file
 pub struct Pager<I: Read + Seek = std::fs::File> {
     input: I,
     page_size: usize,
@@ -60,6 +61,8 @@ impl<I: Read + Seek> Pager<I> {
     }
 }
 
+/// The header starts with the magic string 'SQLite format 3\0'
+/// followed by the page size encoded as a big-endian 2-byte integer at offset 16
 pub fn parse_header(buffer: &[u8]) -> anyhow::Result<DbHeader> {
     if !buffer.starts_with(HEADER_PREFIX) {
         let prefix = String::from_utf8_lossy(&buffer[..HEADER_PREFIX.len()]);
@@ -154,7 +157,7 @@ fn parse_table_leaf_cell(mut buffer: &[u8]) -> anyhow::Result<TableLeafCell> {
     })
 }
 
-fn read_varint_at(buffer: &[u8], mut offset: usize) -> (u8, i64) {
+pub fn read_varint_at(buffer: &[u8], mut offset: usize) -> (u8, i64) {
     let mut size = 0;
     let mut result = 0;
 
