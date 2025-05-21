@@ -8,40 +8,51 @@ use super::{
 };
 
 #[derive(Debug)]
-pub struct Cursor<'p> {
+pub struct Cursor {
     pub header: RecordHeader,
-    pub pager: &'p mut Pager,
-    pub page_index: usize,
-    pub page_cell: usize,
+    pub payload: Vec<u8>,
 }
 
-impl<'p> Cursor<'p> {
+impl Cursor {
     pub fn field(&mut self, n: usize) -> Option<Value> {
         let record_field = self.header.fields.get(n)?;
 
-        let payload = match self.pager.read_page(self.page_index) {
-            Ok(Page::TableLeaf(leaf)) => &leaf.cells[self.page_cell].payload,
-            _ => return None,
-        };
+        // let payload = match self.pager.read_page(self.page_index) {
+        //     Ok(Page::TableLeaf(leaf)) => &leaf.cells[self.page_cell].payload,
+        //     _ => return None,
+        // };
 
         match record_field.field_type {
             RecordFieldType::Null => Some(Value::Null),
-            RecordFieldType::I8 => Some(Value::Int(read_i8_at(payload, record_field.offset))),
-            RecordFieldType::I16 => Some(Value::Int(read_i16_at(payload, record_field.offset))),
-            RecordFieldType::I24 => Some(Value::Int(read_i24_at(payload, record_field.offset))),
-            RecordFieldType::I32 => Some(Value::Int(read_i32_at(payload, record_field.offset))),
-            RecordFieldType::I48 => Some(Value::Int(read_i48_at(payload, record_field.offset))),
-            RecordFieldType::I64 => Some(Value::Int(read_i64_at(payload, record_field.offset))),
-            RecordFieldType::Float => Some(Value::Float(read_f64_at(payload, record_field.offset))),
+            RecordFieldType::I8 => Some(Value::Int(read_i8_at(&self.payload, record_field.offset))),
+            RecordFieldType::I16 => {
+                Some(Value::Int(read_i16_at(&self.payload, record_field.offset)))
+            }
+            RecordFieldType::I24 => {
+                Some(Value::Int(read_i24_at(&self.payload, record_field.offset)))
+            }
+            RecordFieldType::I32 => {
+                Some(Value::Int(read_i32_at(&self.payload, record_field.offset)))
+            }
+            RecordFieldType::I48 => {
+                Some(Value::Int(read_i48_at(&self.payload, record_field.offset)))
+            }
+            RecordFieldType::I64 => {
+                Some(Value::Int(read_i64_at(&self.payload, record_field.offset)))
+            }
+            RecordFieldType::Float => Some(Value::Float(read_f64_at(
+                &self.payload,
+                record_field.offset,
+            ))),
             RecordFieldType::String(length) => {
                 let value = std::str::from_utf8(
-                    &payload[record_field.offset..record_field.offset + length],
+                    &self.payload[record_field.offset..record_field.offset + length],
                 )
                 .expect("invalid utf8");
                 Some(Value::String(Cow::Borrowed(value)))
             }
             RecordFieldType::Blob(length) => {
-                let value = &payload[record_field.offset..record_field.offset + length];
+                let value = &self.payload[record_field.offset..record_field.offset + length];
                 Some(Value::Blob(Cow::Borrowed(value)))
             }
             _ => panic!("unimplemented"),
