@@ -26,6 +26,7 @@ pub enum PageType {
     TableLeaf,
 }
 
+#[derive(Debug)]
 pub enum Page {
     TableLeaf(TableLeafPage),
 }

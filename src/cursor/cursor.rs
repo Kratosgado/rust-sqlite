@@ -9,10 +9,10 @@ use super::{
 
 #[derive(Debug)]
 pub struct Cursor<'p> {
-    header: RecordHeader,
-    pager: &'p mut Pager,
-    page_index: usize,
-    page_cell: usize,
+    pub header: RecordHeader,
+    pub pager: &'p mut Pager,
+    pub page_index: usize,
+    pub page_cell: usize,
 }
 
 impl<'p> Cursor<'p> {

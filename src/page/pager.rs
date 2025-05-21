@@ -22,6 +22,7 @@ const PAGE_FRAGMENTED_BYTES_COUNT_OFFSET: usize = 7;
 const PAGE_MAX_SIZE: u32 = 65536;
 
 /// pager reads and caches pages from the db file
+#[derive(Debug)]
 pub struct Pager<I: Read + Seek = std::fs::File> {
     input: I,
     page_size: usize,

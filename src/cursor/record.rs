@@ -25,7 +25,7 @@ pub struct RecordHeader {
     pub fields: Vec<RecordField>,
 }
 
-fn parse_record_header(mut buffer: &[u8]) -> anyhow::Result<RecordHeader> {
+pub fn parse_record_header(mut buffer: &[u8]) -> anyhow::Result<RecordHeader> {
     let (varint_size, header_length) = crate::pager::read_varint_at(buffer, 0);
     buffer = &buffer[varint_size as usize..header_length as usize];
 
