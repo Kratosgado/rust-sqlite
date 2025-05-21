@@ -21,6 +21,9 @@ const PAGE_FRAGMENTED_BYTES_COUNT_OFFSET: usize = 7;
 
 const PAGE_MAX_SIZE: u32 = 65536;
 
+const PAGE_LEAF_TABLE_ID: u8 = 0x0d;
+const PAGE_INTERIO_TABLE_ID: u8 = 0x05;
+
 /// pager reads and caches pages from the db file
 #[derive(Debug)]
 pub struct Pager<I: Read + Seek = std::fs::File> {
@@ -84,6 +87,11 @@ fn read_be_word_at(input: &[u8], offset: usize) -> u16 {
     u16::from_be_bytes(input[offset..offset + 2].try_into().unwrap())
 }
 
+// TODO: verify validity
+fn read_be_double_at(input: &[u8], offset: usize) -> u32 {
+    u32::from_be_bytes(input[offset..offset + 4].try_into().unwrap())
+}
+
 fn parse_page(buffer: &[u8], page_num: usize) -> anyhow::Result<Page> {
     let ptr_offset = if page_num == 1 { HEADER_SIZE as u16 } else { 0 };
 
@@ -112,19 +120,28 @@ fn parse_table_leaf_page(buffer: &[u8], ptr_offset: u16) -> anyhow::Result<Page>
 }
 
 fn parse_page_header(buffer: &[u8]) -> anyhow::Result<PageHeader> {
-    let page_type = match buffer[0] {
-        0x0d => PageType::TableLeaf,
+    let (page_type, has_rightmost_ptr) = match buffer[0] {
+        PAGE_LEAF_TABLE_ID => (PageType::TableLeaf, false),
+        PAGE_INTERIO_TABLE_ID => (PageType::TableInterior, true),
         _ => anyhow::bail!("unknown page type: {}", buffer[0]),
     };
 
     let first_freeblock = read_be_word_at(buffer, PAGE_FIRST_FREEBLOCK_OFFSET);
     let cell_count = read_be_word_at(buffer, PAGE_CELL_COUNT_OFFSET);
     let cell_content_offset = match read_be_word_at(buffer, PAGE_CELL_CONTENT_OFFSET) {
-        0 => 65536,
+        0 => PAGE_MAX_SIZE,
         n => n as u32,
     };
 
     let fragmented_bytes_count = buffer[PAGE_FRAGMENTED_BYTES_COUNT_OFFSET];
+    let rightmost_pointer = if has_rightmost_ptr {
+        Some(read_be_double_at(
+            buffer,
+            PAGE_FRAGMENTED_BYTES_COUNT_OFFSET,
+        ))
+    } else {
+        None
+    };
 
     Ok(PageHeader {
         page_type,
@@ -132,6 +149,7 @@ fn parse_page_header(buffer: &[u8]) -> anyhow::Result<PageHeader> {
         cell_count,
         cell_content_offset,
         fragmented_bytes_count,
+        rightmost_pointer,
     })
 }
 
