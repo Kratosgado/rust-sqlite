@@ -11,19 +11,19 @@ pub struct SelectStatement {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SelectCore {
     pub result_columns: Vec<ResultColumn>,
-    pub from: SelectFrom
+    pub from: SelectFrom,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResultColumn {
     Star,
-    Expr(ExprResultColumn)
+    Expr(ExprResultColumn),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct  ExprResultColumn {
+pub struct ExprResultColumn {
     pub expr: Expr,
-    pub alias: Option<String>
+    pub alias: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -38,5 +38,5 @@ pub struct Column {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SelectFrom {
-    Table(String)
+    Table(String),
 }
