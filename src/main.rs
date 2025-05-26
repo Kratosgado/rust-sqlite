@@ -18,7 +18,7 @@ fn cli(mut db: Db) -> anyhow::Result<()> {
         match line_buffer.trim() {
             ".exit" => break,
             ".tables" => display_tables(&mut db)?,
-            stmt => match sql::parser::parse_statement(stmt) {
+            stmt => match sql::parser::parse_statement(stmt, true) {
                 Ok(stmt) => {
                     println!("{:?}", stmt)
                 }
@@ -35,22 +35,8 @@ fn cli(mut db: Db) -> anyhow::Result<()> {
 }
 
 fn display_tables(db: &mut Db) -> anyhow::Result<()> {
-    let mut scanner = db.scanner(1);
-
-    while let Some(mut record) = scanner.next_record()? {
-        let type_value = record
-            .field(0)
-            .context("missing type field")
-            .context("invalid type field")?;
-
-        if type_value.as_str() == Some("table") {
-            let name_value = record
-                .field(1)
-                .context("missing name field")
-                .context("invalid name field")?;
-
-            print!("{} ", name_value.as_str().unwrap());
-        }
+    for table in &db.tables_metadata {
+        print!("{} ", &table.name)
     }
 
     Ok(())

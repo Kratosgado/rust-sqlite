@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, ops::Deref};
 
 #[derive(Debug, Clone)]
 pub enum Value<'p> {
@@ -13,6 +13,14 @@ impl<'p> Value<'p> {
     pub fn as_str(&self) -> Option<&str> {
         if let Value::String(s) = self {
             Some(s.as_ref())
+        } else {
+            None
+        }
+    }
+
+    pub fn as_int(&self) -> Option<i64> {
+        if let Value::Int(i) = self {
+            Some(*i)
         } else {
             None
         }
