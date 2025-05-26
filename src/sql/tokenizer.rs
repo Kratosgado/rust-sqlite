@@ -1,5 +1,9 @@
 #[derive(Debug, PartialEq, Eq)]
 pub enum Token {
+    Create,
+    Table,
+    LPar,
+    RPar,
     Select,
     As,
     From,
@@ -27,6 +31,8 @@ pub fn tokenize(input: &str) -> anyhow::Result<Vec<Token>> {
             '*' => tokens.push(Token::Star),
             ',' => tokens.push(Token::Comma),
             ';' => tokens.push(Token::SemiColon),
+            '(' => tokens.push(Token::LPar),
+            ')' => tokens.push(Token::RPar),
             c if c.is_whitespace() => continue,
             c if c.is_alphabetic() => {
                 let mut ident = c.to_string().to_lowercase();
@@ -35,13 +41,15 @@ pub fn tokenize(input: &str) -> anyhow::Result<Vec<Token>> {
                 }
 
                 match ident.as_str() {
+                    "create" => tokens.push(Token::Create),
+                    "table" => tokens.push(Token::Table),
                     "select" => tokens.push(Token::Select),
                     "as" => tokens.push(Token::As),
                     "from" => tokens.push(Token::From),
                     _ => tokens.push(Token::Identifier(ident)),
                 }
             }
-            _ => return Err(anyhow::anyhow!("unexpected character: {}", c)),
+            _ => anyhow::bail!("unexpected character: {}", c),
         }
     }
     Ok(tokens)

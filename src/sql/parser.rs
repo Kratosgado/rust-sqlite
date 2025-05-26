@@ -1,9 +1,11 @@
+use std::any::type_name;
+
 use anyhow::{bail, Context};
 
 use super::{
     ast::{
-        Column, Expr, ExprResultColumn, ResultColumn, SelectCore, SelectFrom, SelectStatement,
-        Statement,
+        Column, ColumnDef, CreateTableStatement, Expr, ExprResultColumn, ResultColumn, SelectCore,
+        SelectFrom, SelectStatement, Statement, Type,
     },
     tokenizer::{self, Token},
 };
@@ -20,7 +22,12 @@ impl ParserState {
     }
 
     fn parse_statement(&mut self) -> anyhow::Result<Statement> {
-        Ok(Statement::Select(self.parse_select()?))
+        // Ok(Statement::Select(self.parse_select()?));
+        match self.peak_next_token().context("unexpected end of input")? {
+            Token::Create => self.parse_create_table().map(Statement::CreateTable),
+            Token::Select => self.parse_select().map(Statement::Select),
+            token => bail!("unexpected token: {token:?}"),
+        }
     }
 
     fn parse_select(&mut self) -> anyhow::Result<SelectStatement> {
@@ -110,15 +117,56 @@ impl ParserState {
         token
     }
 
+    fn parse_create_table(&mut self) -> anyhow::Result<CreateTableStatement> {
+        self.expect_eq(Token::Create)?;
+        self.expect_eq(Token::Table)?;
+        let name = self.expected_identifier()?.to_string();
+        self.expect_eq(Token::LPar)?;
+        let mut columns = vec![self.parse_column_def()?];
+        while self.next_token_is(Token::Comma) {
+            self.advance();
+            columns.push(self.parse_column_def()?);
+        }
+        self.expect_eq(Token::RPar)?;
+        Ok(CreateTableStatement { name, columns })
+    }
+    fn parse_column_def(&mut self) -> anyhow::Result<ColumnDef> {
+        Ok(ColumnDef {
+            name: self.expected_identifier()?.to_string(),
+            col_type: self.parse_type()?,
+        })
+    }
+
+    fn parse_type(&mut self) -> anyhow::Result<Type> {
+        let type_name = self.expected_identifier()?;
+        let t = match type_name.to_lowercase().as_str() {
+            "integer" => Type::Integer,
+            "real" => Type::Real,
+            "blob" => Type::Blob,
+            "text" | "string" => Type::Text,
+            _ => bail!("unsupported type: {type_name}"),
+        };
+        Ok(t)
+    }
+
     fn advance(&mut self) {
         self.pos += 1;
     }
 }
 
-pub fn parse_statement(input: &str) -> anyhow::Result<Statement> {
+pub fn parse_statement(input: &str, trailing_semicolon: bool) -> anyhow::Result<Statement> {
     let tokens = tokenizer::tokenize(input)?;
     let mut state = ParserState::new(tokens);
     let statements = state.parse_statement()?;
-    state.expect_eq(Token::SemiColon)?;
+    if trailing_semicolon {
+        state.expect_eq(Token::SemiColon)?;
+    }
     Ok(statements)
+}
+
+pub fn parse_create_statement(input: &str) -> anyhow::Result<CreateTableStatement> {
+    match parse_statement(input, false)? {
+        Statement::CreateTable(c) => Ok(c),
+        Statement::Select(_) => bail!("expected a create statement"),
+    }
 }
