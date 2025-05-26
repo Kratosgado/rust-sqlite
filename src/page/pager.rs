@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     io::{Read, Seek, SeekFrom},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use anyhow::{Context, Ok};
@@ -27,41 +28,61 @@ const PAGE_INTERIO_TABLE_ID: u8 = 0x05;
 /// pager reads and caches pages from the db file
 #[derive(Debug)]
 pub struct Pager<I: Read + Seek = std::fs::File> {
-    input: I,
+    input: Arc<Mutex<I>>,
     page_size: usize,
-    pages: HashMap<usize, Page>,
+    pages: Arc<RwLock<HashMap<usize, Arc<Page>>>>,
 }
 
 impl<I: Read + Seek> Pager<I> {
     pub fn new(input: I, page_size: usize) -> Self {
         Self {
-            input,
+            input: Arc::new(Mutex::new(input)),
             page_size,
-            pages: HashMap::new(),
+            pages: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    pub fn read_page(&mut self, n: usize) -> anyhow::Result<&Page> {
-        if self.pages.contains_key(&n) {
-            return Ok(self.pages.get(&n).unwrap());
+    pub fn read_page(&self, n: usize) -> anyhow::Result<Arc<Page>> {
+        {
+            let read_pages = self
+                .pages
+                .read()
+                .map_err(|_| anyhow::anyhow!("failed to acquire pager read lock"))?;
+            if let Some(page) = read_pages.get(&n) {
+                return Ok(page.clone());
+            }
+        }
+
+        let mut write_pages = self
+            .pages
+            .write()
+            .map_err(|_| anyhow::anyhow!("failed to acquire pager write lock"))?;
+
+        if let Some(page) = write_pages.get(&n) {
+            return Ok(page.clone());
         }
 
         let page = self.load_page(n)?;
-        self.pages.insert(n, page);
-        Ok(self.pages.get(&n).unwrap())
+        write_pages.insert(n, page.clone());
+        Ok(page)
     }
 
-    fn load_page(&mut self, n: usize) -> anyhow::Result<Page> {
+    fn load_page(&self, n: usize) -> anyhow::Result<Arc<Page>> {
         let offset = n.saturating_sub(1) * self.page_size;
 
-        self.input
+        let mut input_guard = self
+            .input
+            .lock()
+            .map_err(|_| anyhow::anyhow!("failed to lock pager mutex"))?;
+
+        input_guard
             .seek(SeekFrom::Start(offset as u64))
             .context("seek to page start")?;
 
         let mut buffer = vec![0; self.page_size];
-        self.input.read_exact(&mut buffer).context("read page")?;
+        input_guard.read_exact(&mut buffer).context("read page")?;
 
-        parse_page(&buffer, n)
+        Ok(Arc::new(parse_page(&buffer, n)?))
     }
 }
 
