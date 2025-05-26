@@ -4,7 +4,7 @@ use crate::{page::page_utils::Page, pager::Pager};
 
 use super::{
     record::{RecordFieldType, RecordHeader},
-    value::Value,
+    value::{OwnedValue, Value},
 };
 
 #[derive(Debug)]
@@ -57,6 +57,10 @@ impl Cursor {
             }
             _ => panic!("unimplemented"),
         }
+    }
+
+    pub fn owned_field(&self, n: usize) -> Option<OwnedValue> {
+        self.field(n).map(Into::into)
     }
 }
 
