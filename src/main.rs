@@ -1,7 +1,7 @@
 use std::io::{stdin, stdout, BufRead, Write};
 
 use anyhow::Context;
-use rust_sqlite::db::Db;
+use rust_sqlite::{db::Db, sql};
 
 fn main() -> anyhow::Result<()> {
     let database = Db::from_file(std::env::args().nth(1).context("missing db file")?)?;
@@ -18,7 +18,14 @@ fn cli(mut db: Db) -> anyhow::Result<()> {
         match line_buffer.trim() {
             ".exit" => break,
             ".tables" => display_tables(&mut db)?,
-            _ => println!("Unrecognised command '{}'", line_buffer.trim()),
+            stmt => match sql::parser::parse_statement(stmt) {
+                Ok(stmt) => {
+                    println!("{:?}", stmt)
+                }
+                Err(e) => {
+                    println!("Error: {}", e);
+                }
+            },
         }
 
         print_flushed("\nrqlite> ")?;

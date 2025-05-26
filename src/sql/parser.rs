@@ -1,6 +1,12 @@
 use anyhow::{bail, Context};
 
-use super::tokenizer::Token;
+use super::{
+    ast::{
+        Column, Expr, ExprResultColumn, ResultColumn, SelectCore, SelectFrom, SelectStatement,
+        Statement,
+    },
+    tokenizer::{self, Token},
+};
 
 #[derive(Debug)]
 struct ParserState {
@@ -11,6 +17,63 @@ struct ParserState {
 impl ParserState {
     fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, pos: 0 }
+    }
+
+    fn parse_statement(&mut self) -> anyhow::Result<Statement> {
+        Ok(Statement::Select(self.parse_select()?))
+    }
+
+    fn parse_select(&mut self) -> anyhow::Result<SelectStatement> {
+        self.expect_eq(Token::Select)?;
+        let result_columns = self.parse_result_columns()?;
+        self.expect_eq(Token::From)?;
+        let from = self.parse_select_from()?;
+        Ok(SelectStatement {
+            core: SelectCore {
+                result_columns,
+                from,
+            },
+        })
+    }
+
+    fn parse_select_from(&mut self) -> anyhow::Result<SelectFrom> {
+        let table = self.expected_identifier()?;
+        Ok(SelectFrom::Table(table.to_string()))
+    }
+
+    fn parse_result_columns(&mut self) -> anyhow::Result<Vec<ResultColumn>> {
+        let mut result_columns = vec![self.parse_result_column()?];
+        while self.next_token_is(Token::Comma) {
+            self.advance();
+            result_columns.push(self.parse_result_column()?);
+        }
+        Ok(result_columns)
+    }
+
+    fn parse_result_column(&mut self) -> anyhow::Result<ResultColumn> {
+        if self.peak_next_token()? == &Token::Star {
+            self.advance();
+            return Ok(ResultColumn::Star);
+        }
+
+        Ok(ResultColumn::Expr(self.parse_expr_result_column()?))
+    }
+
+    fn parse_expr(&mut self) -> anyhow::Result<Expr> {
+        Ok(Expr::Column(Column {
+            name: self.expected_identifier()?.to_string(),
+        }))
+    }
+
+    fn parse_expr_result_column(&mut self) -> anyhow::Result<ExprResultColumn> {
+        let expr = self.parse_expr()?;
+        let alias = if self.next_token_is(Token::As) {
+            self.advance();
+            Some(self.expected_identifier()?.to_string())
+        } else {
+            None
+        };
+        Ok(ExprResultColumn { expr, alias })
     }
 
     fn next_token_is(&self, expected: Token) -> bool {
@@ -50,4 +113,12 @@ impl ParserState {
     fn advance(&mut self) {
         self.pos += 1;
     }
+}
+
+pub fn parse_statement(input: &str) -> anyhow::Result<Statement> {
+    let tokens = tokenizer::tokenize(input)?;
+    let mut state = ParserState::new(tokens);
+    let statements = state.parse_statement()?;
+    state.expect_eq(Token::SemiColon)?;
+    Ok(statements)
 }
