@@ -1,7 +1,5 @@
 use std::borrow::Cow;
 
-use crate::{page::page_utils::Page, pager::Pager};
-
 use super::{
     record::{RecordFieldType, RecordHeader},
     value::{OwnedValue, Value},
@@ -55,7 +53,8 @@ impl Cursor {
                 let value = &self.payload[record_field.offset..record_field.offset + length];
                 Some(Value::Blob(Cow::Borrowed(value)))
             }
-            _ => panic!("unimplemented"),
+            RecordFieldType::One => Some(Value::Int(1)),
+            RecordFieldType::Zero => Some(Value::Int(0)),
         }
     }
 

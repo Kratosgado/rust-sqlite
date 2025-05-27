@@ -1,8 +1,10 @@
+use std::sync::Arc;
+
 use super::page_utils::{Cell, Page, PageType};
 
 #[derive(Debug)]
 pub struct PositionedPage {
-    pub page: Page,
+    pub page: Arc<Page>,
     pub cell: usize,
 }
 

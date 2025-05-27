@@ -1,2 +1,2 @@
 mod operator;
-mod plan;
+pub mod plan;

@@ -12,14 +12,14 @@ enum ScannerElem {
 }
 
 #[derive(Debug)]
-pub struct Scanner<'p> {
-    pager: &'p mut Pager,
+pub struct Scanner {
+    pager: Pager,
     inital_page: usize,
     page_stack: Vec<PositionedPage>,
 }
 
-impl<'p> Scanner<'p> {
-    pub fn new(pager: &'p mut Pager, page: usize) -> Self {
+impl Scanner {
+    pub fn new(pager: Pager, page: usize) -> Self {
         Self {
             pager,
             inital_page: page,

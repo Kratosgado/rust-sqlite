@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ops::Deref, rc::Rc};
+use std::{borrow::Cow, rc::Rc};
 
 #[derive(Debug, Clone)]
 pub enum Value<'p> {

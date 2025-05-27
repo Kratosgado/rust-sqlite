@@ -38,7 +38,7 @@ impl<I: Read + Seek> Pager<I> {
         Self {
             input: Arc::new(Mutex::new(input)),
             page_size,
-            pages: Arc::new(RwLock::new(HashMap::new())),
+            pages: Arc::default(),
         }
     }
 
@@ -83,6 +83,16 @@ impl<I: Read + Seek> Pager<I> {
         input_guard.read_exact(&mut buffer).context("read page")?;
 
         Ok(Arc::new(parse_page(&buffer, n)?))
+    }
+}
+
+impl Clone for Pager {
+    fn clone(&self) -> Self {
+        Self {
+            input: self.input.clone(),
+            page_size: self.page_size,
+            pages: self.pages.clone(),
+        }
     }
 }
 
@@ -147,24 +157,6 @@ fn parse_cells(
         .map(|&ptr| parse_fn(&buffer[ptr as usize..]))
         .collect()
 }
-//
-// fn parse_table_leaf_page(buffer: &[u8], ptr_offset: u16) -> anyhow::Result<Cell> {
-//     let header = parse_page_header(buffer)?;
-//
-//     let content_buffer = &buffer[PAGE_LEAF_HEADER_SIZE..];
-//     let cell_pointers = parse_cell_pointers(content_buffer, header.cell_count as usize, ptr_offset);
-//
-//     let cells = cell_pointers
-//         .iter()
-//         .map(|&ptr| parse_table_leaf_cell(&buffer[ptr as usize..]))
-//         .collect::<anyhow::Result<Vec<TableLeafCell>>>()?;
-//
-//     Ok(Page::TableLeaf(TableLeafPage {
-//         header,
-//         cell_pointers,
-//         cells,
-//     }))
-// }
 
 fn parse_page_header(buffer: &[u8]) -> anyhow::Result<PageHeader> {
     let (page_type, has_rightmost_ptr) = match buffer[0] {
