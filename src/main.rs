@@ -18,7 +18,7 @@ fn cli(mut db: Db) -> anyhow::Result<()> {
         match line_buffer.trim() {
             ".exit" => break,
             ".tables" => display_tables(&mut db)?,
-            stmt => eval_query(&db, stmt)?,
+            stmt => eval_query(&db, stmt).unwrap_or_else(|e| println!("Error: {e}")),
         }
 
         print_flushed("\nrqlite> ")?;
