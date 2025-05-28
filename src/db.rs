@@ -48,6 +48,7 @@ impl Db {
     fn collect_tables_metadata(pager: Pager) -> anyhow::Result<Vec<TableMetadata>> {
         let mut metadata = vec![];
         let mut scanner = Scanner::new(pager, 1);
+        // println!("scanner: {scanner:?}");
 
         while let Some(record) = scanner.next_record()? {
             if let Some(m) = TableMetadata::from_cursor(&record)? {

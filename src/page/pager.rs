@@ -14,11 +14,11 @@ pub const HEADER_SIZE: usize = 100;
 const HEADER_PREFIX: &[u8] = b"SQLite format 3\0";
 const HEADER_PAGE_SIZE_OFFSET: usize = 16;
 
-const PAGE_LEAF_HEADER_SIZE: usize = 8;
 const PAGE_FIRST_FREEBLOCK_OFFSET: usize = 1;
 const PAGE_CELL_COUNT_OFFSET: usize = 3;
 const PAGE_CELL_CONTENT_OFFSET: usize = 5;
 const PAGE_FRAGMENTED_BYTES_COUNT_OFFSET: usize = 7;
+const PAGE_LEAF_HEADER_SIZE: usize = 8;
 
 const PAGE_MAX_SIZE: u32 = 65536;
 
@@ -69,7 +69,6 @@ impl<I: Read + Seek> Pager<I> {
 
     fn load_page(&self, n: usize) -> anyhow::Result<Arc<Page>> {
         let offset = n.saturating_sub(1) * self.page_size;
-        println!("loading page offset: {offset}, n: {n}");
 
         let mut input_guard = self
             .input
@@ -82,7 +81,6 @@ impl<I: Read + Seek> Pager<I> {
 
         let mut buffer = vec![0; self.page_size];
         input_guard.read_exact(&mut buffer).context("read page")?;
-        println!("read buffer: {buffer:?}");
 
         Ok(Arc::new(parse_page(&buffer, n)?))
     }
