@@ -69,6 +69,7 @@ impl<I: Read + Seek> Pager<I> {
 
     fn load_page(&self, n: usize) -> anyhow::Result<Arc<Page>> {
         let offset = n.saturating_sub(1) * self.page_size;
+        println!("loading page offset: {offset}, n: {n}");
 
         let mut input_guard = self
             .input
@@ -81,6 +82,7 @@ impl<I: Read + Seek> Pager<I> {
 
         let mut buffer = vec![0; self.page_size];
         input_guard.read_exact(&mut buffer).context("read page")?;
+        println!("read buffer: {buffer:?}");
 
         Ok(Arc::new(parse_page(&buffer, n)?))
     }
@@ -114,11 +116,12 @@ pub fn parse_header(buffer: &[u8]) -> anyhow::Result<DbHeader> {
     Ok(DbHeader { page_size })
 }
 
+/// Read the next 2 bytes from the offset
 fn read_be_word_at(input: &[u8], offset: usize) -> u16 {
     u16::from_be_bytes(input[offset..offset + 2].try_into().unwrap())
 }
 
-// TODO: verify validity
+/// read the next 4 bytes from the offset
 fn read_be_double_at(input: &[u8], offset: usize) -> u32 {
     u32::from_be_bytes(input[offset..offset + 4].try_into().unwrap())
 }
@@ -174,10 +177,7 @@ fn parse_page_header(buffer: &[u8]) -> anyhow::Result<PageHeader> {
 
     let fragmented_bytes_count = buffer[PAGE_FRAGMENTED_BYTES_COUNT_OFFSET];
     let rightmost_pointer = if has_rightmost_ptr {
-        Some(read_be_double_at(
-            buffer,
-            PAGE_FRAGMENTED_BYTES_COUNT_OFFSET,
-        ))
+        Some(read_be_double_at(buffer, PAGE_LEAF_HEADER_SIZE))
     } else {
         None
     };
