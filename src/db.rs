@@ -31,6 +31,7 @@ impl Db {
             .context("read db header")?;
 
         let header = dbheader::parse_header(&header_buffer).context("parse db header")?;
+        println!("{header:?}");
 
         let pager = Pager::new(file, header.page_size as usize);
         let tables_metadata = Self::collect_tables_metadata(pager.clone())?;
@@ -47,7 +48,8 @@ impl Db {
 
     fn collect_tables_metadata(pager: Pager) -> anyhow::Result<Vec<TableMetadata>> {
         let mut metadata = vec![];
-        let mut scanner = Scanner::new(pager, 1);
+        let mut scanner = Scanner::new
+            (pager, 1);
 
         while let Some(record) = scanner.next_record()? {
             if let Some(m) = TableMetadata::from_cursor(&record)? {
