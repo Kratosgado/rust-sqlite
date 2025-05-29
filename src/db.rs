@@ -4,8 +4,8 @@ use anyhow::Context;
 
 use crate::{
     cursor::{cursor::Cursor, scanner::Scanner},
-    dbheader::DbHeader,
-    pager::{self, Pager},
+    dbheader::{self, DbHeader},
+    pager::Pager,
     sql::{self, ast},
 };
 
@@ -26,11 +26,11 @@ impl Db {
     pub fn from_file(filename: impl AsRef<Path>) -> anyhow::Result<Self> {
         let mut file = std::fs::File::open(filename.as_ref()).context("open db file")?;
 
-        let mut header_buffer = [0; pager::HEADER_SIZE];
+        let mut header_buffer = [0; dbheader::HEADER_SIZE];
         file.read_exact(&mut header_buffer)
             .context("read db header")?;
 
-        let header = pager::parse_header(&header_buffer).context("parse db header")?;
+        let header = dbheader::parse_header(&header_buffer).context("parse db header")?;
 
         let pager = Pager::new(file, header.page_size as usize);
         let tables_metadata = Self::collect_tables_metadata(pager.clone())?;

@@ -6,21 +6,18 @@ use std::{
 
 use anyhow::{Context, Ok};
 
-use crate::dbheader::DbHeader;
+use crate::{
+    dbheader::{HEADER_SIZE, PAGE_MAX_SIZE},
+    read_be_double_at, read_be_word_at, read_varint_at,
+};
 
 use super::page_utils::{self, Cell, Page, PageHeader, PageType, TableLeafCell};
 
-pub const HEADER_SIZE: usize = 100;
-const HEADER_PREFIX: &[u8] = b"SQLite format 3\0";
-const HEADER_PAGE_SIZE_OFFSET: usize = 16;
-
-const PAGE_FIRST_FREEBLOCK_OFFSET: usize = 1;
-const PAGE_CELL_COUNT_OFFSET: usize = 3;
-const PAGE_CELL_CONTENT_OFFSET: usize = 5;
-const PAGE_FRAGMENTED_BYTES_COUNT_OFFSET: usize = 7;
-const PAGE_LEAF_HEADER_SIZE: usize = 8;
-
-const PAGE_MAX_SIZE: u32 = 65536;
+pub const PAGE_FIRST_FREEBLOCK_OFFSET: usize = 1;
+pub const PAGE_CELL_COUNT_OFFSET: usize = 3;
+pub const PAGE_CELL_CONTENT_OFFSET: usize = 5;
+pub const PAGE_FRAGMENTED_BYTES_COUNT_OFFSET: usize = 7;
+pub const PAGE_LEAF_HEADER_SIZE: usize = 8;
 
 const PAGE_LEAF_TABLE_ID: u8 = 0x0d;
 const PAGE_INTERIO_TABLE_ID: u8 = 0x05;
@@ -97,34 +94,6 @@ impl Clone for Pager {
             pages: self.pages.clone(),
         }
     }
-}
-
-/// The header starts with the magic string 'SQLite format 3\0'
-/// followed by the page size encoded as a big-endian 2-byte integer at offset 16
-pub fn parse_header(buffer: &[u8]) -> anyhow::Result<DbHeader> {
-    if !buffer.starts_with(HEADER_PREFIX) {
-        let prefix = String::from_utf8_lossy(&buffer[..HEADER_PREFIX.len()]);
-        anyhow::bail!("Invalid header prefix: {prefix}");
-    }
-
-    let page_size_raw = read_be_word_at(buffer, HEADER_PAGE_SIZE_OFFSET);
-    let page_size = match page_size_raw {
-        1 => PAGE_MAX_SIZE,
-        n if n.is_power_of_two() => n as u32,
-        _ => anyhow::bail!("page size is not a power of 2: {}", page_size_raw),
-    };
-
-    Ok(DbHeader { page_size })
-}
-
-/// Read the next 2 bytes from the offset
-fn read_be_word_at(input: &[u8], offset: usize) -> u16 {
-    u16::from_be_bytes(input[offset..offset + 2].try_into().unwrap())
-}
-
-/// read the next 4 bytes from the offset
-fn read_be_double_at(input: &[u8], offset: usize) -> u32 {
-    u32::from_be_bytes(input[offset..offset + 4].try_into().unwrap())
 }
 
 fn parse_page(buffer: &[u8], page_num: usize) -> anyhow::Result<Page> {
@@ -228,18 +197,4 @@ fn parse_table_interior_cell(mut buffer: &[u8]) -> anyhow::Result<page_utils::Ce
         key,
     }
     .into())
-}
-
-pub fn read_varint_at(buffer: &[u8], mut offset: usize) -> (u8, i64) {
-    let mut size = 0;
-    let mut result = 0;
-
-    while size < 8 && buffer[offset] >= 0b1000_0000 {
-        result |= ((buffer[offset] as i64) & 0b0111_1111) << (7 * size);
-        offset += 1;
-        size += 1;
-    }
-
-    result |= (buffer[offset] as i64) << (7 * size);
-    (size + 1, result)
 }
