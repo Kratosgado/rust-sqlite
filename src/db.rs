@@ -48,7 +48,6 @@ impl Db {
     fn collect_tables_metadata(pager: Pager) -> anyhow::Result<Vec<TableMetadata>> {
         let mut metadata = vec![];
         let mut scanner = Scanner::new(pager, 1);
-        // println!("scanner: {scanner:?}");
 
         while let Some(record) = scanner.next_record()? {
             if let Some(m) = TableMetadata::from_cursor(&record)? {
@@ -84,6 +83,10 @@ impl TableMetadata {
             .context("missing table first page")?
             .as_int()
             .context("table first page should be an integer")? as usize;
+        println!("type_value: {type_value:?}");
+        println!("create_stmt: {create_stmt:?}");
+        println!("create: {create:?}");
+        println!("first_page: {first_page:?}");
 
         Ok(Some(TableMetadata {
             name: create.name,

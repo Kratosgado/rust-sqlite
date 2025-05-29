@@ -38,9 +38,11 @@ impl SeqScan {
             return Ok(None);
         };
 
+        // println!("record: {record:?}");
         for (i, &n) in self.fields.iter().enumerate() {
             self.row_buffer[i] = record.owned_field(n).context("missing record field")?;
         }
+
         Ok(Some(&self.row_buffer))
     }
 }

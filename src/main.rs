@@ -5,7 +5,6 @@ use rust_sqlite::{db::Db, engine, sql};
 
 fn main() -> anyhow::Result<()> {
     let database = Db::from_file(std::env::args().nth(1).context("missing db file")?)?;
-
     cli(database)
 }
 
@@ -29,14 +28,16 @@ fn cli(mut db: Db) -> anyhow::Result<()> {
 
 fn eval_query(db: &Db, query: &str) -> anyhow::Result<()> {
     let parsed_query = sql::parser::parse_statement(query, false)?;
+    println!("{parsed_query:?}");
     let mut op = engine::plan::Planner::new(db).compile(&parsed_query)?;
+    // println!("{op:?}");
 
     while let Some(values) = op.next_row()? {
         let formated = values
             .iter()
             .map(ToString::to_string)
             .collect::<Vec<_>>()
-            .join("|");
+            .join("\t| ");
 
         println!("{formated}");
     }

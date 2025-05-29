@@ -81,6 +81,9 @@ impl<I: Read + Seek> Pager<I> {
 
         let mut buffer = vec![0; self.page_size];
         input_guard.read_exact(&mut buffer).context("read page")?;
+        // println!("page({n}): {buffer:?}");
+        // let page = parse_page(&buffer, n)?;
+        // println!("{page:?}");
 
         Ok(Arc::new(parse_page(&buffer, n)?))
     }

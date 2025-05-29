@@ -34,12 +34,14 @@ impl<'d> Planner<'d> {
             .with_context(|| format!("invalid table name: {table_name}"))?;
 
         let mut columns = vec![];
+        let mut col_names = vec![];
 
         for res_col in &select.core.result_columns {
             match res_col {
                 ResultColumn::Star => {
-                    for i in 0..table.columns.len() {
+                    for (i, col) in table.columns.iter().enumerate() {
                         columns.push(i);
+                        col_names.push(col.name.clone());
                     }
                 }
                 ResultColumn::Expr(e) => {
@@ -51,9 +53,18 @@ impl<'d> Planner<'d> {
                         .find(|(_, c)| c.name == col.name)
                         .with_context(|| format!("invalid column name: {}", col.name))?;
                     columns.push(index);
+                    col_names.push(if let Some(alias) = &e.alias {
+                        alias.clone()
+                    } else {
+                        col.name.clone()
+                    });
                 }
             }
         }
+        let formatted = col_names.join("\t| ");
+        println!("{formatted}");
+        println!("-----------------------------------------------------------------------------------------------------------------------");
+
         Ok(Operator::SeqScan(SeqScan::new(
             columns,
             self.db.scanner(table.first_page),
