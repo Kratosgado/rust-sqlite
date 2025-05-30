@@ -86,3 +86,15 @@ impl From<TableInteriorCell> for Cell {
         Self::TableInterior(cell)
     }
 }
+
+impl From<IndexLeafCell> for Cell {
+    fn from(cell: IndexLeafCell) -> Self {
+        Self::IndexLeaf(cell)
+    }
+}
+
+impl From<IndexInteriorCell> for Cell {
+    fn from(cell: IndexInteriorCell) -> Self {
+        Self::IndexInterior(cell)
+    }
+}

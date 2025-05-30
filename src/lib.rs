@@ -7,6 +7,8 @@ pub mod sql;
 
 pub use page::pager;
 
+/// read variable bytes from buffer
+/// # RETURNS (size, value)
 fn read_varint_at(buffer: &[u8], mut offset: usize) -> (u8, i64) {
     let mut size = 0;
     let mut result = 0;

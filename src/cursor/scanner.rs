@@ -70,6 +70,7 @@ impl Scanner {
                 })))
             }
             Cell::TableInterior(cell) => Ok(Some(ScannerElem::Page(cell.left_child_page))),
+            c => unimplemented!("Scannine {c:?} not implemented"),
         }
     }
 

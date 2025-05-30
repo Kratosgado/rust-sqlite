@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     io::{Read, Seek, SeekFrom},
     sync::{Arc, Mutex, RwLock},
+    usize,
 };
 
 use anyhow::{Context, Ok};
@@ -11,7 +12,7 @@ use crate::{
     read_be_double_at, read_be_word_at, read_varint_at,
 };
 
-use super::page_utils::{self, Cell, Page, PageHeader, PageType, TableLeafCell};
+use super::page_utils::{self, Cell, IndexLeafCell, Page, PageHeader, PageType, TableLeafCell};
 
 pub const PAGE_FIRST_FREEBLOCK_OFFSET: usize = 1;
 pub const PAGE_CELL_COUNT_OFFSET: usize = 3;
@@ -98,12 +99,12 @@ impl Clone for Pager {
     }
 }
 
-fn parse_page(buffer: &[u8], page_num: usize) -> anyhow::Result<Page> {
+fn parse_page(pg_buffer: &[u8], page_num: usize) -> anyhow::Result<Page> {
     let ptr_offset = if page_num == 1 { HEADER_SIZE as u16 } else { 0 };
-    let content_buffer = &buffer[ptr_offset as usize..];
-    let header = parse_page_header(content_buffer)?;
+    let pg_content_buffer = &pg_buffer[ptr_offset as usize..];
+    let header = parse_page_header(pg_content_buffer)?;
     let cell_pointers = parse_cell_pointers(
-        &content_buffer[header.byte_size()..],
+        &pg_content_buffer[header.byte_size()..],
         header.cell_count as usize,
         ptr_offset,
     );
@@ -111,10 +112,11 @@ fn parse_page(buffer: &[u8], page_num: usize) -> anyhow::Result<Page> {
     let cells_parsing_fn = match header.page_type {
         PageType::TableLeaf => parse_table_leaf_cell,
         PageType::TableInterior => parse_table_interior_cell,
-        _ => unimplemented!("parsing index is not implemented"),
+        PageType::IndexLeaf => parse_index_leaf_cell,
+        PageType::IndexInterior => parse_index_interior_cell,
     };
 
-    let cells = parse_cells(content_buffer, &cell_pointers, cells_parsing_fn)?;
+    let cells = parse_cells(pg_content_buffer, &cell_pointers, cells_parsing_fn)?;
 
     Ok(Page {
         header,
@@ -124,35 +126,35 @@ fn parse_page(buffer: &[u8], page_num: usize) -> anyhow::Result<Page> {
 }
 
 fn parse_cells(
-    buffer: &[u8],
+    pg_content_buffer: &[u8],
     cell_pointers: &[u16],
     parse_fn: impl Fn(&[u8]) -> anyhow::Result<Cell>,
 ) -> anyhow::Result<Vec<Cell>> {
     cell_pointers
         .iter()
-        .map(|&ptr| parse_fn(&buffer[ptr as usize..]))
+        .map(|&ptr| parse_fn(&pg_content_buffer[ptr as usize..]))
         .collect()
 }
 
-fn parse_page_header(buffer: &[u8]) -> anyhow::Result<PageHeader> {
-    let (page_type, has_rightmost_ptr) = match buffer[0] {
+fn parse_page_header(pg_buffer: &[u8]) -> anyhow::Result<PageHeader> {
+    let (page_type, has_rightmost_ptr) = match pg_buffer[0] {
         PAGE_LEAF_TABLE_ID => (PageType::TableLeaf, false),
         PAGE_INTERIROR_TABLE_ID => (PageType::TableInterior, true),
-        PAGE_INTERIOR_INDEX_ID => (PageType::IndexInterior, true),
+        PAGE_INTERIOR_INDEX_ID => (PageType::IndexInterior, false),
         PAGE_LEAF_INDEX_ID => (PageType::IndexLeaf, false),
-        _ => anyhow::bail!("unknown page type: {}", buffer[0]),
+        _ => anyhow::bail!("unknown page type: {}", pg_buffer[0]),
     };
 
-    let first_freeblock = read_be_word_at(buffer, PAGE_FIRST_FREEBLOCK_OFFSET);
-    let cell_count = read_be_word_at(buffer, PAGE_CELL_COUNT_OFFSET);
-    let cell_content_offset = match read_be_word_at(buffer, PAGE_CELL_CONTENT_OFFSET) {
+    let first_freeblock = read_be_word_at(pg_buffer, PAGE_FIRST_FREEBLOCK_OFFSET);
+    let cell_count = read_be_word_at(pg_buffer, PAGE_CELL_COUNT_OFFSET);
+    let cell_content_offset = match read_be_word_at(pg_buffer, PAGE_CELL_CONTENT_OFFSET) {
         0 => PAGE_MAX_SIZE,
         n => n as u32,
     };
 
-    let fragmented_bytes_count = buffer[PAGE_FRAGMENTED_BYTES_COUNT_OFFSET];
+    let fragmented_bytes_count = pg_buffer[PAGE_FRAGMENTED_BYTES_COUNT_OFFSET];
     let rightmost_pointer = if has_rightmost_ptr {
-        Some(read_be_double_at(buffer, PAGE_LEAF_HEADER_SIZE))
+        Some(read_be_double_at(pg_buffer, PAGE_LEAF_HEADER_SIZE))
     } else {
         None
     };
@@ -175,31 +177,62 @@ fn parse_cell_pointers(buffer: &[u8], n: usize, ptr_offset: u16) -> Vec<u16> {
     pointers
 }
 
-fn parse_table_leaf_cell(mut buffer: &[u8]) -> anyhow::Result<page_utils::Cell> {
-    let (n, size) = read_varint_at(buffer, 0);
-    buffer = &buffer[n as usize..];
+fn parse_table_leaf_cell(mut pg_content_buffer: &[u8]) -> anyhow::Result<Cell> {
+    let (n, size) = read_varint_at(pg_content_buffer, 0);
+    pg_content_buffer = &pg_content_buffer[n as usize..];
 
-    let (n, row_id) = read_varint_at(buffer, 0);
-    buffer = &buffer[n as usize..];
+    let (n, row_id) = read_varint_at(pg_content_buffer, 0);
+    pg_content_buffer = &pg_content_buffer[n as usize..];
 
-    let payload = buffer[..size as usize].to_vec();
+    let payload = pg_content_buffer[..size as usize].to_vec();
     Ok(TableLeafCell {
         size,
         row_id,
         payload,
+        overflow_page_num: None,
     }
     .into())
 }
 
-fn parse_table_interior_cell(mut buffer: &[u8]) -> anyhow::Result<page_utils::Cell> {
-    let left_child_page = read_be_double_at(buffer, 0);
-    buffer = &buffer[4..];
+fn parse_table_interior_cell(mut pg_content_buff: &[u8]) -> anyhow::Result<Cell> {
+    let left_child_page = read_be_double_at(pg_content_buff, 0);
+    pg_content_buff = &pg_content_buff[4..];
 
-    let (_, key) = read_varint_at(buffer, 0);
+    let (_, key) = read_varint_at(pg_content_buff, 0);
 
     Ok(page_utils::TableInteriorCell {
         left_child_page,
         key,
+    }
+    .into())
+}
+
+fn parse_index_leaf_cell(mut pg_content_buff: &[u8]) -> anyhow::Result<Cell> {
+    let (n, size) = read_varint_at(pg_content_buff, 0);
+    pg_content_buff = &pg_content_buff[n as usize..];
+
+    let payload = pg_content_buff[..size as usize].to_vec();
+    Ok(page_utils::IndexLeafCell {
+        size,
+        payload,
+        overflow_page_num: None,
+    }
+    .into())
+}
+
+fn parse_index_interior_cell(mut pg_content_buff: &[u8]) -> anyhow::Result<Cell> {
+    let left_child_page = read_be_double_at(pg_content_buff, 0);
+    pg_content_buff = &pg_content_buff[4..];
+
+    let (n, size) = read_varint_at(pg_content_buff, 0);
+    pg_content_buff = &pg_content_buff[n as usize..];
+
+    let payload = pg_content_buff[..size as usize].to_vec();
+    Ok(page_utils::IndexInteriorCell {
+        left_child_page,
+        size,
+        payload,
+        overflow_page_num: None,
     }
     .into())
 }
