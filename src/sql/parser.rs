@@ -20,7 +20,6 @@ impl ParserState {
     }
 
     fn parse_statement(&mut self) -> anyhow::Result<Statement> {
-        // Ok(Statement::Select(self.parse_select()?));
         match self.peak_next_token().context("unexpected end of input")? {
             Token::Create => self.parse_create_table().map(Statement::CreateTable),
             Token::Select => self.parse_select().map(Statement::Select),

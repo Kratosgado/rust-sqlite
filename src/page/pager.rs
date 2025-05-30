@@ -19,8 +19,10 @@ pub const PAGE_CELL_CONTENT_OFFSET: usize = 5;
 pub const PAGE_FRAGMENTED_BYTES_COUNT_OFFSET: usize = 7;
 pub const PAGE_LEAF_HEADER_SIZE: usize = 8;
 
+const PAGE_INTERIOR_INDEX_ID: u8 = 0x02;
+const PAGE_INTERIROR_TABLE_ID: u8 = 0x05;
+const PAGE_LEAF_INDEX_ID: u8 = 0x0a;
 const PAGE_LEAF_TABLE_ID: u8 = 0x0d;
-const PAGE_INTERIO_TABLE_ID: u8 = 0x05;
 
 /// pager reads and caches pages from the db file
 #[derive(Debug)]
@@ -109,6 +111,7 @@ fn parse_page(buffer: &[u8], page_num: usize) -> anyhow::Result<Page> {
     let cells_parsing_fn = match header.page_type {
         PageType::TableLeaf => parse_table_leaf_cell,
         PageType::TableInterior => parse_table_interior_cell,
+        _ => unimplemented!("parsing index is not implemented"),
     };
 
     let cells = parse_cells(content_buffer, &cell_pointers, cells_parsing_fn)?;
@@ -134,7 +137,9 @@ fn parse_cells(
 fn parse_page_header(buffer: &[u8]) -> anyhow::Result<PageHeader> {
     let (page_type, has_rightmost_ptr) = match buffer[0] {
         PAGE_LEAF_TABLE_ID => (PageType::TableLeaf, false),
-        PAGE_INTERIO_TABLE_ID => (PageType::TableInterior, true),
+        PAGE_INTERIROR_TABLE_ID => (PageType::TableInterior, true),
+        PAGE_INTERIOR_INDEX_ID => (PageType::IndexInterior, true),
+        PAGE_LEAF_INDEX_ID => (PageType::IndexLeaf, false),
         _ => anyhow::bail!("unknown page type: {}", buffer[0]),
     };
 

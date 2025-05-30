@@ -3,6 +3,7 @@ pub struct TableLeafCell {
     pub size: i64,
     pub row_id: i64,
     pub payload: Vec<u8>,
+    pub overflow_page_num: Option<u32>,
 }
 
 #[derive(Debug, Clone)]
@@ -12,9 +13,26 @@ pub struct TableInteriorCell {
 }
 
 #[derive(Debug, Clone)]
+pub struct IndexLeafCell {
+    pub size: i64,
+    pub payload: Vec<u8>,
+    pub overflow_page_num: Option<u32>,
+}
+
+#[derive(Debug, Clone)]
+pub struct IndexInteriorCell {
+    pub left_child_page: u32,
+    pub size: i64,
+    pub payload: Vec<u8>,
+    pub overflow_page_num: Option<u32>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Cell {
     TableLeaf(TableLeafCell),
     TableInterior(TableInteriorCell),
+    IndexLeaf(IndexLeafCell),
+    IndexInterior(IndexInteriorCell),
 }
 
 #[derive(Debug, Clone)]
@@ -28,15 +46,23 @@ pub struct Page {
 pub enum PageType {
     TableLeaf,
     TableInterior,
+    IndexLeaf,
+    IndexInterior,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct PageHeader {
+    /// b-tree page type
     pub page_type: PageType,
+    /// Gives the start of the first freeblock on the page,
+    /// or is 0 if there are no freeblocks
     pub first_freeblock: u16,
     pub cell_count: u16,
+    /// start of the cell content. 0 value indicates 65536
     pub cell_content_offset: u32,
+    /// Number of fragmented free bytes within the cell content aread.
     pub fragmented_bytes_count: u8,
+    /// Apperas in the header of interior b-tree pages only
     pub rightmost_pointer: Option<u32>,
 }
 
