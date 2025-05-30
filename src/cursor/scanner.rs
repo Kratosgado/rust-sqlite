@@ -32,6 +32,7 @@ impl Scanner {
             match self.next_elem() {
                 Ok(Some(ScannerElem::Cursor(cursor))) => return Ok(Some(cursor)),
                 Ok(Some(ScannerElem::Page(page_num))) => {
+                    // for next page
                     let new_page = self.pager.read_page(page_num as usize)?.clone();
                     self.page_stack.push(PositionedPage {
                         page: new_page,

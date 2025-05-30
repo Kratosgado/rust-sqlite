@@ -25,18 +25,18 @@ pub struct RecordHeader {
     pub fields: Vec<RecordField>,
 }
 
-pub fn parse_record_header(mut buffer: &[u8]) -> anyhow::Result<RecordHeader> {
-    let (varint_size, header_length) = crate::read_varint_at(buffer, 0);
-    buffer = &buffer[varint_size as usize..header_length as usize];
+pub fn parse_record_header(mut cell_buff: &[u8]) -> anyhow::Result<RecordHeader> {
+    let (varint_size, header_length) = crate::read_varint_at(cell_buff, 0);
+    cell_buff = &cell_buff[varint_size as usize..header_length as usize];
 
-    let mut fields = Vec::new();
+    let mut fields = vec![];
     let mut current_offset = header_length as usize;
 
-    while !buffer.is_empty() {
-        let (discriminant_size, discriminant) = crate::read_varint_at(buffer, 0);
-        buffer = &buffer[discriminant_size as usize..];
+    while !cell_buff.is_empty() {
+        let (serial_size, serial_type) = crate::read_varint_at(cell_buff, 0);
+        cell_buff = &cell_buff[serial_size as usize..];
 
-        let (field_type, field_size) = match discriminant {
+        let (field_type, field_size) = match serial_type {
             0 => (RecordFieldType::Null, 0),
             1 => (RecordFieldType::I8, 1),
             2 => (RecordFieldType::I16, 2),
