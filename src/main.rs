@@ -15,6 +15,7 @@ fn cli(mut db: Db) -> anyhow::Result<()> {
 
     while stdin().lock().read_line(&mut line_buffer).is_ok() {
         match line_buffer.trim() {
+            ".help" => display_help(),
             ".exit" => break,
             ".tables" => display_tables(&mut db)?,
             stmt => eval_query(&db, stmt).unwrap_or_else(|e| println!("Error: {e}")),
@@ -51,6 +52,16 @@ fn display_tables(db: &mut Db) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+fn display_help() {
+    print!(
+        "MAN PAGE!\n
+        .tables -- display tables.
+        .help -- display help.
+        .exit -- exit REPL
+"
+    )
 }
 
 fn print_flushed(s: &str) -> anyhow::Result<()> {
