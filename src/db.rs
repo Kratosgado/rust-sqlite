@@ -52,7 +52,6 @@ impl Db {
 
         while let Some(record) = scanner.next_record()? {
             if let Some(m) = TableMetadata::from_cursor(&record)? {
-                println!("{m:?}");
                 metadata.push(m);
             }
         }
