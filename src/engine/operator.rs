@@ -1,6 +1,9 @@
 use anyhow::Context;
 
-use crate::cursor::{scanner::Scanner, value::OwnedValue};
+use crate::{
+    cursor::{scanner::Scanner, value::OwnedValue},
+    sql::ast::WhereClause,
+};
 
 #[derive(Debug)]
 pub enum Operator {
@@ -18,18 +21,27 @@ impl Operator {
 #[derive(Debug)]
 pub struct SeqScan {
     fields: Vec<usize>,
+    aliases: Option<Vec<String>>,
     scanner: Scanner,
     row_buffer: Vec<OwnedValue>,
+    where_clause: Option<WhereClause>,
 }
 
 impl SeqScan {
-    pub fn new(fields: Vec<usize>, scanner: Scanner) -> Self {
+    pub fn new(
+        fields: Vec<usize>,
+        aliases: Option<Vec<String>>,
+        scanner: Scanner,
+        where_clause: Option<WhereClause>,
+    ) -> Self {
         let row_buffer = vec![OwnedValue::Null; fields.len()];
 
         Self {
             fields,
+            aliases,
             scanner,
             row_buffer,
+            where_clause,
         }
     }
 

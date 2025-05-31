@@ -108,7 +108,7 @@ impl ParserState {
             .map(|t| t.as_op().unwrap())
     }
     fn expect_literal(&mut self) -> anyhow::Result<Literal> {
-        self.expect_matching(|t| matches!(t, Token::Literal(_)))
+        self.expect_matching(|t| matches!(t, Token::Literal(_) | Token::Identifier(_)))
             .map(|t| t.as_literal().unwrap())
     }
 

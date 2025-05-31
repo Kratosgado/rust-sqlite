@@ -15,11 +15,6 @@ impl Cursor {
     pub fn field(&self, n: usize) -> Option<Value> {
         let record_field = self.header.fields.get(n)?;
 
-        // let payload = match self.pager.read_page(self.page_index) {
-        //     Ok(Page::TableLeaf(leaf)) => &leaf.cells[self.page_cell].payload,
-        //     _ => return None,
-        // };
-
         match record_field.field_type {
             RecordFieldType::Null => Some(Value::Null),
             RecordFieldType::I8 => Some(Value::Int(read_i8_at(&self.payload, record_field.offset))),

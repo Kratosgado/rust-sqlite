@@ -36,6 +36,7 @@ impl<'d> Planner<'d> {
         let mut columns = vec![];
         let mut col_names = vec![];
 
+
         for res_col in &select.core.result_columns {
             match res_col {
                 ResultColumn::Star => {
@@ -67,7 +68,9 @@ impl<'d> Planner<'d> {
 
         Ok(Operator::SeqScan(SeqScan::new(
             columns,
+            Some(col_names),
             self.db.scanner(table.first_page),
+            select.core.where_clause.clone(),
         )))
     }
 }

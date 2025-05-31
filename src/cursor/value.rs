@@ -1,5 +1,7 @@
 use std::{borrow::Cow, rc::Rc};
 
+use crate::sql::ast::WhereClause;
+
 #[derive(Debug, Clone)]
 pub enum Value<'p> {
     Null,
@@ -34,6 +36,13 @@ pub enum OwnedValue {
     Blob(Rc<Vec<u8>>),
     Int(i64),
     Float(f64),
+}
+
+impl OwnedValue {
+    pub fn applyWhere(aliases:Vec<String>, wh: WhereClause){
+
+    }
+
 }
 
 impl<'p> From<Value<'p>> for OwnedValue {
