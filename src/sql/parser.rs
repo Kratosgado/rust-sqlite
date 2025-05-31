@@ -2,10 +2,10 @@ use anyhow::{bail, Context};
 
 use super::{
     ast::{
-        Column, ColumnDef, CreateTableStatement, Expr, ExprResultColumn, ResultColumn, SelectCore,
-        SelectFrom, SelectStatement, Statement, Type,
+        Column, ColumnDef, CreateTableStatement, Expr, ExprResultColumn, Literal, ResultColumn,
+        SelectCore, SelectFrom, SelectStatement, Statement, Type, WhereClause,
     },
-    tokenizer::{self, Token},
+    tokenizer::{self, Ops, Token},
 };
 
 #[derive(Debug)]
@@ -32,10 +32,17 @@ impl ParserState {
         let result_columns = self.parse_result_columns()?;
         self.expect_eq(Token::From)?;
         let from = self.parse_select_from()?;
+
+        let mut where_clause = None;
+        if self.expect_eq(Token::Where)? == &Token::Where {
+            where_clause = Some(self.parse_where_clause()?);
+        }
+
         Ok(SelectStatement {
             core: SelectCore {
                 result_columns,
                 from,
+                where_clause,
             },
         })
     }
@@ -43,6 +50,13 @@ impl ParserState {
     fn parse_select_from(&mut self) -> anyhow::Result<SelectFrom> {
         let table = self.expected_identifier()?;
         Ok(SelectFrom::Table(table.to_string()))
+    }
+
+    fn parse_where_clause(&mut self) -> anyhow::Result<WhereClause> {
+        let field = self.expected_identifier()?.to_string();
+        let op = self.expect_operator()?.clone();
+        let value = self.expect_literal()?;
+        Ok(WhereClause { field, op, value })
     }
 
     fn parse_result_columns(&mut self) -> anyhow::Result<Vec<ResultColumn>> {
@@ -87,6 +101,15 @@ impl ParserState {
     fn expected_identifier(&mut self) -> anyhow::Result<&str> {
         self.expect_matching(|t| matches!(t, Token::Identifier(_)))
             .map(|t| t.as_identifier().unwrap())
+    }
+
+    fn expect_operator(&mut self) -> anyhow::Result<&Ops> {
+        self.expect_matching(|t| matches!(t, Token::Op(_)))
+            .map(|t| t.as_op().unwrap())
+    }
+    fn expect_literal(&mut self) -> anyhow::Result<Literal> {
+        self.expect_matching(|t| matches!(t, Token::Literal(_)))
+            .map(|t| t.as_literal().unwrap())
     }
 
     fn expect_eq(&mut self, expected: Token) -> anyhow::Result<&Token> {

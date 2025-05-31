@@ -1,18 +1,28 @@
-#[derive(Debug, Clone, PartialEq, Eq)]
+use super::tokenizer::Ops;
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Select(SelectStatement),
     CreateTable(CreateTableStatement),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectStatement {
     pub core: SelectCore,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SelectCore {
     pub result_columns: Vec<ResultColumn>,
     pub from: SelectFrom,
+    pub where_clause: Option<WhereClause>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WhereClause {
+    pub field: String,
+    pub op: Ops,
+    pub value: Literal,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,4 +70,12 @@ pub enum Type {
     Real,
     Text,
     Blob,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Literal {
+    Null,
+    Int(i64),
+    Real(f64),
+    Text(String),
 }

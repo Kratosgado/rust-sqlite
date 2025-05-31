@@ -1,3 +1,5 @@
+use super::ast::Literal;
+
 #[derive(Debug, PartialEq)]
 pub enum Token {
     Create,
@@ -13,11 +15,11 @@ pub enum Token {
     Where,
     Op(Ops),
     Identifier(String),
-    Number(i64),
-    Real(f64),
+
+    Literal(Literal),
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ops {
     Equal,
     NotEqual,
@@ -31,6 +33,21 @@ impl Token {
     pub fn as_identifier(&self) -> Option<&str> {
         match self {
             Token::Identifier(ident) => Some(ident),
+            _ => None,
+        }
+    }
+
+    pub fn as_op(&self) -> Option<&Ops> {
+        match self {
+            Token::Op(op) => Some(op),
+            _ => None,
+        }
+    }
+
+    pub fn as_literal(&self) -> Option<Literal> {
+        match self {
+            Token::Literal(i) => Some(i.clone()),
+            Token::Identifier(v) => Some(Literal::Text(v.clone())),
             _ => None,
         }
     }
@@ -52,7 +69,6 @@ pub fn tokenize(input: &str) -> anyhow::Result<Vec<Token>> {
                 if let Some(cc) = chars.next_if(|&cc| cc == '=') {
                     op.push(cc);
                 }
-                println!("{op}");
                 match op.as_str() {
                     "=" => tokens.push(Token::Op(Ops::Equal)),
                     "!=" => tokens.push(Token::Op(Ops::NotEqual)),
@@ -70,9 +86,9 @@ pub fn tokenize(input: &str) -> anyhow::Result<Vec<Token>> {
                     num.extend(cc.to_lowercase());
                 }
                 tokens.push(if num.contains('.') {
-                    Token::Real(num.parse()?)
+                    Token::Literal(Literal::Real(num.parse()?))
                 } else {
-                    Token::Number(num.parse()?)
+                    Token::Literal(Literal::Int(num.parse()?))
                 });
             }
             c if c.is_alphabetic() => {

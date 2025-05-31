@@ -12,7 +12,7 @@ use crate::{
     read_be_double_at, read_be_word_at, read_varint_at,
 };
 
-use super::page_utils::{self, Cell, IndexLeafCell, Page, PageHeader, PageType, TableLeafCell};
+use super::page_utils::{self, Cell, Page, PageHeader, PageType, TableLeafCell};
 
 pub const PAGE_FIRST_FREEBLOCK_OFFSET: usize = 1;
 pub const PAGE_CELL_COUNT_OFFSET: usize = 3;
