@@ -59,6 +59,7 @@ impl SeqScan {
         Ok(Some(&self.row_buffer))
     }
 }
+
 impl SeqScanWithPredicate {
     pub fn new(fields: Vec<usize>, scanner: Scanner, predicate: Predicate) -> SeqScanWithPredicate {
         let row_buffer = vec![OwnedValue::Null; fields.len()];

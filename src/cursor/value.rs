@@ -1,6 +1,6 @@
 use std::{borrow::Cow, rc::Rc};
 
-use crate::sql::ast::{Literal, WhereClause};
+use crate::sql::ast::Literal;
 
 #[derive(Debug, Clone)]
 pub enum Value<'p> {
