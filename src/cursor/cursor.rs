@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use crate::sql::ast::Predicate;
+
 use super::{
     record::{RecordFieldType, RecordHeader},
     value::{OwnedValue, Value},
@@ -51,6 +53,10 @@ impl Cursor {
             RecordFieldType::One => Some(Value::Int(1)),
             RecordFieldType::Zero => Some(Value::Int(0)),
         }
+    }
+
+    pub fn by_predicate(&self, p: Predicate) -> bool {
+        self.field(p.field).unwrap().compare(p.value)
     }
 
     pub fn owned_field(&self, n: usize) -> Option<OwnedValue> {

@@ -76,6 +76,9 @@ impl SeqScanWithPredicate {
             let Some(record) = self.scanner.next_record()? else {
                 return Ok(None);
             };
+            if !record.by_predicate(self.predicate.clone()) {
+                continue;
+            }
 
             for (i, &n) in self.fields.iter().enumerate() {
                 self.row_buffer[i] = record.owned_field(n).context("missing record field")?;

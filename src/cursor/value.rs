@@ -1,6 +1,6 @@
 use std::{borrow::Cow, rc::Rc};
 
-use crate::sql::ast::WhereClause;
+use crate::sql::ast::{Literal, WhereClause};
 
 #[derive(Debug, Clone)]
 pub enum Value<'p> {
@@ -27,6 +27,16 @@ impl<'p> Value<'p> {
             None
         }
     }
+    pub fn compare(&self, v: Literal) -> bool {
+        match self {
+            Value::Null => v.eq(&Literal::Null),
+            Value::String(s) => v.eq(&Literal::Text(s.to_string())),
+            Value::Blob(_) => todo!(),
+            Value::Int(i) => v.eq(&Literal::Int(*i)),
+            Value::Float(_) => todo!(),
+        }
+        //
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -36,10 +46,6 @@ pub enum OwnedValue {
     Blob(Rc<Vec<u8>>),
     Int(i64),
     Float(f64),
-}
-
-impl OwnedValue {
-    pub fn apply_where(aliases: Vec<String>, wh: WhereClause) {}
 }
 
 impl<'p> From<Value<'p>> for OwnedValue {

@@ -25,7 +25,7 @@ pub struct WhereClause {
     pub value: Literal,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Predicate {
     pub field: usize,
     pub op: Ops,
