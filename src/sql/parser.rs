@@ -34,8 +34,12 @@ impl ParserState {
         let from = self.parse_select_from()?;
 
         let mut where_clause = None;
-        if self.expect_eq(Token::Where)? == &Token::Where {
-            where_clause = Some(self.parse_where_clause()?);
+        match self.peak_next_token()? {
+            Token::Where => {
+                self.advance();
+                where_clause = Some(self.parse_where_clause()?);
+            }
+            _ => {}
         }
 
         Ok(SelectStatement {

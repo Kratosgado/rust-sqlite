@@ -39,10 +39,7 @@ pub enum OwnedValue {
 }
 
 impl OwnedValue {
-    pub fn applyWhere(aliases:Vec<String>, wh: WhereClause){
-
-    }
-
+    pub fn apply_where(aliases: Vec<String>, wh: WhereClause) {}
 }
 
 impl<'p> From<Value<'p>> for OwnedValue {

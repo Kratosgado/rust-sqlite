@@ -60,8 +60,7 @@ fn display_help() {
         "MAN PAGE!\n
         .tables -- display tables.
         .help -- display help.
-        .exit -- exit REPL
-"
+        .exit -- exit REPL "
     )
 }
 

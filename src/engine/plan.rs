@@ -2,7 +2,8 @@ use anyhow::{bail, Context};
 
 use crate::{
     db::Db,
-    sql::ast::{self, Expr, ResultColumn, SelectFrom},
+    engine::operator::SeqScanWithPredicate,
+    sql::ast::{self, Expr, Predicate, ResultColumn, SelectFrom},
 };
 
 use super::operator::{Operator, SeqScan};
@@ -36,7 +37,6 @@ impl<'d> Planner<'d> {
         let mut columns = vec![];
         let mut col_names = vec![];
 
-
         for res_col in &select.core.result_columns {
             match res_col {
                 ResultColumn::Star => {
@@ -66,11 +66,27 @@ impl<'d> Planner<'d> {
         println!("{formatted}");
         println!("-----------------------------------------------------------------------------------------------------------------------");
 
-        Ok(Operator::SeqScan(SeqScan::new(
-            columns,
-            Some(col_names),
-            self.db.scanner(table.first_page),
-            select.core.where_clause.clone(),
-        )))
+        let operator = if let Some(wc) = select.core.where_clause.clone() {
+            let idx = table
+                .columns
+                .iter()
+                .enumerate()
+                .find(|(_, c)| c.name == wc.field)
+                .with_context(|| format!("invalid where field: {}", wc.field))?
+                .0;
+            Operator::SeqScanWithPredicate(SeqScanWithPredicate::new(
+                columns,
+                self.db.scanner(table.first_page),
+                Predicate {
+                    field: idx,
+                    op: wc.op,
+                    value: wc.value,
+                },
+            ))
+        } else {
+            Operator::SeqScan(SeqScan::new(columns, self.db.scanner(table.first_page)))
+        };
+
+        Ok(operator)
     }
 }

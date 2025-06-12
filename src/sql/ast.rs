@@ -25,6 +25,13 @@ pub struct WhereClause {
     pub value: Literal,
 }
 
+#[derive(Debug)]
+pub struct Predicate {
+    pub field: usize,
+    pub op: Ops,
+    pub value: Literal,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResultColumn {
     Star,
