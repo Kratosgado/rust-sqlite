@@ -15,43 +15,29 @@ pub struct SelectStatement {
 pub struct SelectCore {
     pub result_columns: Vec<ResultColumn>,
     pub from: SelectFrom,
-    pub where_clause: Option<WhereClause>,
+    pub where_clause: Option<Expr>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct WhereClause {
-    pub field: String,
-    pub op: Ops,
-    pub value: Literal,
-}
-
-#[derive(Debug, Clone)]
-pub struct Predicate {
-    pub field: usize,
-    pub op: Ops,
-    pub value: Literal,
-}
-
-pub enum Predicates {
-    Col(String),
-    Comparison(Box<Predicate>, Ops, Box<Predicate>),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResultColumn {
     Star,
     Expr(ExprResultColumn),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ExprResultColumn {
     pub expr: Expr,
     pub alias: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Column(String),
+    Null,
+    Int(i64),
+    Real(f64),
+    Text(String),
+    Comparison(Box<Expr>, Ops, Box<Expr>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -77,12 +63,4 @@ pub enum Type {
     Real,
     Text,
     Blob,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Literal {
-    Null,
-    Int(i64),
-    Real(f64),
-    Text(String),
 }
