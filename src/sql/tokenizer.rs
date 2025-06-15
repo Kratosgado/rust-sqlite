@@ -1,4 +1,4 @@
-use super::ast::Literal;
+use super::ast::Expr;
 
 #[derive(Debug, PartialEq)]
 pub enum Token {
@@ -16,10 +16,12 @@ pub enum Token {
     Op(Ops),
     Identifier(String),
 
-    Literal(Literal),
+    Int(i64),
+    Real(f64),
+    Null,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Ops {
     Eq,
     Ne,
@@ -46,10 +48,12 @@ impl Token {
         }
     }
 
-    pub fn as_literal(&self) -> Option<Literal> {
+    pub fn as_literal(&self) -> Option<Expr> {
         match self {
-            Token::Literal(i) => Some(i.clone()),
-            Token::Identifier(v) => Some(Literal::Text(v.clone())),
+            Token::Int(i) => Some(Expr::Int(*i)),
+            Token::Real(i) => Some(Expr::Real(*i)),
+            Token::Null => Some(Expr::Null),
+            Token::Identifier(v) => Some(Expr::Text(v.clone())),
             _ => None,
         }
     }
@@ -88,9 +92,9 @@ pub fn tokenize(input: &str) -> anyhow::Result<Vec<Token>> {
                     num.extend(cc.to_lowercase());
                 }
                 tokens.push(if num.contains('.') {
-                    Token::Literal(Literal::Real(num.parse()?))
+                    Token::Real(num.parse()?)
                 } else {
-                    Token::Literal(Literal::Int(num.parse()?))
+                    Token::Int(num.parse()?)
                 });
             }
             c if c.is_alphabetic() => {

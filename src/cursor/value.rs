@@ -1,7 +1,5 @@
 use std::{borrow::Cow, rc::Rc};
 
-use crate::sql::ast::Literal;
-
 #[derive(Debug, Clone)]
 pub enum Value<'p> {
     Null,
@@ -26,16 +24,6 @@ impl<'p> Value<'p> {
         } else {
             None
         }
-    }
-    #[inline(always)]
-    pub fn compare(&self, v: &Literal) -> bool {
-        match (self, v) {
-            (Value::Null, Literal::Null) => true,
-            (Value::String(s), Literal::Text(t)) => s == t,
-            (Value::Int(i), Literal::Int(t)) => i == t,
-            _ => false,
-        }
-        //
     }
 }
 

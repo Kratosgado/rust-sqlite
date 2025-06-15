@@ -2,8 +2,8 @@ use anyhow::{bail, Context};
 
 use super::{
     ast::{
-        ColumnDef, CreateTableStatement, Expr, ExprResultColumn, Literal, ResultColumn, SelectCore,
-        SelectFrom, SelectStatement, Statement, Type, WhereClause,
+        ColumnDef, CreateTableStatement, Expr, ExprResultColumn, ResultColumn, SelectCore,
+        SelectFrom, SelectStatement, Statement, Type,
     },
     tokenizer::{self, Ops, Token},
 };
@@ -56,11 +56,11 @@ impl ParserState {
         Ok(SelectFrom::Table(table.to_string()))
     }
 
-    fn parse_where_clause(&mut self) -> anyhow::Result<WhereClause> {
-        let field = self.expected_identifier()?.to_string();
-        let op = self.expect_operator()?.clone();
+    fn parse_where_clause(&mut self) -> anyhow::Result<Expr> {
+        let field = self.parse_expr()?;
+        let op = *self.expect_operator()?;
         let value = self.expect_literal()?;
-        Ok(WhereClause { field, op, value })
+        Ok(Expr::Comparison(Box::new(field), op, Box::new(value)))
     }
 
     fn parse_result_columns(&mut self) -> anyhow::Result<Vec<ResultColumn>> {
@@ -109,9 +109,14 @@ impl ParserState {
         self.expect_matching(|t| matches!(t, Token::Op(_)))
             .map(|t| t.as_op().unwrap())
     }
-    fn expect_literal(&mut self) -> anyhow::Result<Literal> {
-        self.expect_matching(|t| matches!(t, Token::Literal(_) | Token::Identifier(_)))
-            .map(|t| t.as_literal().unwrap())
+    fn expect_literal(&mut self) -> anyhow::Result<Expr> {
+        self.expect_matching(|t| {
+            matches!(
+                t,
+                Token::Null | Token::Int(_) | Token::Real(_) | Token::Identifier(_)
+            )
+        })
+        .map(|t| t.as_literal().unwrap())
     }
 
     fn expect_eq(&mut self, expected: Token) -> anyhow::Result<&Token> {

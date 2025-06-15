@@ -1,9 +1,11 @@
+use std::ops::Deref;
+
 use anyhow::{bail, Context};
 
 use crate::{
     db::Db,
     engine::operator::SeqScanWithPredicate,
-    sql::ast::{self, Expr, Predicate, ResultColumn, SelectFrom},
+    sql::ast::{self, Expr, ResultColumn, SelectFrom},
 };
 
 use super::operator::{Operator, SeqScan};
@@ -46,7 +48,9 @@ impl<'d> Planner<'d> {
                     }
                 }
                 ResultColumn::Expr(e) => {
-                    let Expr::Column(col) = &e.expr;
+                    let Expr::Column(col) = &e.expr else {
+                        anyhow::bail!("Expecting a column name")
+                    };
                     let (index, _) = table
                         .columns
                         .iter()
@@ -66,25 +70,28 @@ impl<'d> Planner<'d> {
         println!("{formatted}");
         println!("-----------------------------------------------------------------------------------------------------------------------");
 
-        let operator = if let Some(wc) = select.core.where_clause.clone() {
-            let idx = table
-                .columns
-                .iter()
-                .enumerate()
-                .find(|(_, c)| c.name == wc.field)
-                .with_context(|| format!("invalid where field: {}", wc.field))?
-                .0;
+        let operator = if let Some(Expr::Comparison(l, op, r)) = &select.core.where_clause {
+            if let Expr::Text(field) = &l.deref() {
+                let idx = table
+                    .columns
+                    .iter()
+                    .enumerate()
+                    .find(|(_, c)| c.name == *field)
+                    .with_context(|| format!("invalid where field: {}", field))?
+                    .0;
+                Operator::SeqScanWithPredicate(SeqScanWithPredicate::new(
+                    &columns,
+                    self.db.scanner(table.first_page),
+                    Expr::Comparison(Box::new(Expr::Int(idx as i64)), *op, r.clone()),
+                ));
+            }
             Operator::SeqScanWithPredicate(SeqScanWithPredicate::new(
-                columns,
+                &columns,
                 self.db.scanner(table.first_page),
-                Predicate {
-                    field: idx,
-                    op: wc.op,
-                    value: wc.value,
-                },
+                select.core.where_clause.as_ref().unwrap().clone(),
             ))
         } else {
-            Operator::SeqScan(SeqScan::new(columns, self.db.scanner(table.first_page)))
+            Operator::SeqScan(SeqScan::new(&columns, self.db.scanner(table.first_page)))
         };
 
         Ok(operator)

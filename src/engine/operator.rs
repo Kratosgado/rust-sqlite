@@ -2,7 +2,7 @@ use anyhow::Context;
 
 use crate::{
     cursor::{scanner::Scanner, value::OwnedValue},
-    sql::ast::Predicate,
+    sql::ast::Expr,
 };
 
 #[derive(Debug)]
@@ -33,15 +33,15 @@ pub struct SeqScanWithPredicate {
     fields: Vec<usize>,
     scanner: Scanner,
     row_buffer: Vec<OwnedValue>,
-    predicate: Predicate,
+    predicate: Expr,
 }
 
 impl SeqScan {
-    pub fn new(fields: Vec<usize>, scanner: Scanner) -> Self {
+    pub fn new(fields: &Vec<usize>, scanner: Scanner) -> Self {
         let row_buffer = vec![OwnedValue::Null; fields.len()];
 
         Self {
-            fields,
+            fields: fields.clone(),
             scanner,
             row_buffer,
         }
@@ -61,11 +61,11 @@ impl SeqScan {
 }
 
 impl SeqScanWithPredicate {
-    pub fn new(fields: Vec<usize>, scanner: Scanner, predicate: Predicate) -> SeqScanWithPredicate {
+    pub fn new(fields: &Vec<usize>, scanner: Scanner, predicate: Expr) -> SeqScanWithPredicate {
         let row_buffer = vec![OwnedValue::Null; fields.len()];
 
         SeqScanWithPredicate {
-            fields,
+            fields: fields.clone(),
             scanner,
             row_buffer,
             predicate,
@@ -78,9 +78,9 @@ impl SeqScanWithPredicate {
             let Some(record) = self.scanner.next_record()? else {
                 return Ok(None);
             };
-            if !record.field(pred.field).unwrap().compare(&pred.value) {
-                continue;
-            }
+            // if !record.field(pred.field).unwrap().compare(&pred.value) {
+            //     continue;
+            // }
 
             for (i, &n) in self.fields.iter().enumerate() {
                 self.row_buffer[i] = record.owned_field(n).context("missing record field")?;
