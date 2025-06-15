@@ -32,6 +32,11 @@ pub struct Predicate {
     pub value: Literal,
 }
 
+pub enum Predicates {
+    Col(String),
+    Comparison(Box<Predicate>, Ops, Box<Predicate>),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResultColumn {
     Star,
@@ -46,12 +51,7 @@ pub struct ExprResultColumn {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr {
-    Column(Column),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Column {
-    pub name: String,
+    Column(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

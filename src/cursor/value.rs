@@ -27,13 +27,13 @@ impl<'p> Value<'p> {
             None
         }
     }
-    pub fn compare(&self, v: Literal) -> bool {
-        match self {
-            Value::Null => v.eq(&Literal::Null),
-            Value::String(s) => v.eq(&Literal::Text(s.to_string())),
-            Value::Blob(_) => todo!(),
-            Value::Int(i) => v.eq(&Literal::Int(*i)),
-            Value::Float(_) => todo!(),
+    #[inline(always)]
+    pub fn compare(&self, v: &Literal) -> bool {
+        match (self, v) {
+            (Value::Null, Literal::Null) => true,
+            (Value::String(s), Literal::Text(t)) => s == t,
+            (Value::Int(i), Literal::Int(t)) => i == t,
+            _ => false,
         }
         //
     }

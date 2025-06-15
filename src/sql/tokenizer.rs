@@ -21,12 +21,14 @@ pub enum Token {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Ops {
-    Equal,
-    NotEqual,
-    LessThan,
-    GreaterThan,
-    LessOrEqual,
-    GreaterOrEqual,
+    Eq,
+    Ne,
+    Lt,
+    Gt,
+    Loe,
+    Goe,
+    And,
+    Or,
 }
 
 impl Token {
@@ -70,12 +72,12 @@ pub fn tokenize(input: &str) -> anyhow::Result<Vec<Token>> {
                     op.push(cc);
                 }
                 match op.as_str() {
-                    "=" => tokens.push(Token::Op(Ops::Equal)),
-                    "!=" => tokens.push(Token::Op(Ops::NotEqual)),
-                    "<" => tokens.push(Token::Op(Ops::LessThan)),
-                    ">" => tokens.push(Token::Op(Ops::GreaterThan)),
-                    ">=" => tokens.push(Token::Op(Ops::GreaterOrEqual)),
-                    "<=" => tokens.push(Token::Op(Ops::LessOrEqual)),
+                    "=" => tokens.push(Token::Op(Ops::Eq)),
+                    "!=" => tokens.push(Token::Op(Ops::Ne)),
+                    "<" => tokens.push(Token::Op(Ops::Lt)),
+                    ">" => tokens.push(Token::Op(Ops::Gt)),
+                    ">=" => tokens.push(Token::Op(Ops::Goe)),
+                    "<=" => tokens.push(Token::Op(Ops::Loe)),
                     _ => anyhow::bail!("unexpected character: {c}"),
                 }
             }

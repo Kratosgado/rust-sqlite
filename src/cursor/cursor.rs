@@ -55,8 +55,9 @@ impl Cursor {
         }
     }
 
-    pub fn by_predicate(&self, p: Predicate) -> bool {
-        self.field(p.field).unwrap().compare(p.value)
+    #[inline(always)]
+    pub fn by_predicate(&self, p: &Predicate) -> bool {
+        self.field(p.field).unwrap().compare(&p.value)
     }
 
     pub fn owned_field(&self, n: usize) -> Option<OwnedValue> {

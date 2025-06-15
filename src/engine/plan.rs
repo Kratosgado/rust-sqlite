@@ -51,13 +51,13 @@ impl<'d> Planner<'d> {
                         .columns
                         .iter()
                         .enumerate()
-                        .find(|(_, c)| c.name == col.name)
-                        .with_context(|| format!("invalid column name: {}", col.name))?;
+                        .find(|(_, c)| c.name == *col)
+                        .with_context(|| format!("invalid column name: {}", col))?;
                     columns.push(index);
                     col_names.push(if let Some(alias) = &e.alias {
                         alias.clone()
                     } else {
-                        col.name.clone()
+                        col.clone()
                     });
                 }
             }

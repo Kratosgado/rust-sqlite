@@ -2,8 +2,8 @@ use anyhow::{bail, Context};
 
 use super::{
     ast::{
-        Column, ColumnDef, CreateTableStatement, Expr, ExprResultColumn, Literal, ResultColumn,
-        SelectCore, SelectFrom, SelectStatement, Statement, Type, WhereClause,
+        ColumnDef, CreateTableStatement, Expr, ExprResultColumn, Literal, ResultColumn, SelectCore,
+        SelectFrom, SelectStatement, Statement, Type, WhereClause,
     },
     tokenizer::{self, Ops, Token},
 };
@@ -28,7 +28,7 @@ impl ParserState {
     }
 
     fn parse_select(&mut self) -> anyhow::Result<SelectStatement> {
-        self.expect_eq(Token::Select)?;
+        self.advance();
         let result_columns = self.parse_result_columns()?;
         self.expect_eq(Token::From)?;
         let from = self.parse_select_from()?;
@@ -82,9 +82,7 @@ impl ParserState {
     }
 
     fn parse_expr(&mut self) -> anyhow::Result<Expr> {
-        Ok(Expr::Column(Column {
-            name: self.expected_identifier()?.to_string(),
-        }))
+        Ok(Expr::Column(self.expected_identifier()?.to_string()))
     }
 
     fn parse_expr_result_column(&mut self) -> anyhow::Result<ExprResultColumn> {
@@ -180,11 +178,14 @@ impl ParserState {
 
 pub fn parse_statement(input: &str, trailing_semicolon: bool) -> anyhow::Result<Statement> {
     let tokens = tokenizer::tokenize(input)?;
+    println!("tokens: {tokens:?}");
     let mut state = ParserState::new(tokens);
     let statements = state.parse_statement()?;
     if trailing_semicolon {
         state.expect_eq(Token::SemiColon)?;
     }
+
+    println!("parsed: {statements:?}");
     Ok(statements)
 }
 

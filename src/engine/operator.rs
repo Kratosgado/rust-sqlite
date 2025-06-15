@@ -73,11 +73,12 @@ impl SeqScanWithPredicate {
     }
 
     fn next_row(&mut self) -> anyhow::Result<Option<&[OwnedValue]>> {
+        let pred = &self.predicate;
         loop {
             let Some(record) = self.scanner.next_record()? else {
                 return Ok(None);
             };
-            if !record.by_predicate(self.predicate.clone()) {
+            if !record.field(pred.field).unwrap().compare(&pred.value) {
                 continue;
             }
 
