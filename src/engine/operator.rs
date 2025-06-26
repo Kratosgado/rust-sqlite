@@ -73,7 +73,9 @@ impl SeqScanWithPredicate {
     }
 
     fn next_row(&mut self) -> anyhow::Result<Option<&[OwnedValue]>> {
-        let pred = &self.predicate;
+        let Expr::Comparison(l, o, r) = &self.predicate else {
+            anyhow::bail!("Expected a truthy value")
+        };
         loop {
             let Some(record) = self.scanner.next_record()? else {
                 return Ok(None);

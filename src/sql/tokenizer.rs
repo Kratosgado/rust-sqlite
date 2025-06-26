@@ -1,3 +1,5 @@
+use anyhow::bail;
+
 use super::ast::Expr;
 
 #[derive(Debug, PartialEq)]
@@ -18,6 +20,7 @@ pub enum Token {
 
     Int(i64),
     Real(f64),
+    String(String),
     Null,
 }
 
@@ -96,6 +99,19 @@ pub fn tokenize(input: &str) -> anyhow::Result<Vec<Token>> {
                 } else {
                     Token::Int(num.parse()?)
                 });
+            }
+            '\'' | '"' => {
+                let mut value = String::new();
+                while let Some(cc) =
+                    chars.next_if(|&cc| cc.is_alphanumeric() || cc == '_' || cc == ' ')
+                {
+                    value.extend(cc.to_lowercase());
+                }
+                if let Some(_) = chars.next_if(|&cc| cc == '\'' || cc == '"') {
+                    tokens.push(Token::String(value));
+                } else {
+                    bail!("Unterminated string '{value}")
+                }
             }
             c if c.is_alphabetic() => {
                 let mut ident = c.to_string().to_lowercase();
