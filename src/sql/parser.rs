@@ -57,10 +57,11 @@ impl ParserState {
 
     fn parse_where_clause(&mut self) -> anyhow::Result<Expr> {
         self.advance();
-        let field = self.parse_expr()?;
-        let op = *self.expect_operator()?;
-        let value = self.expect_literal()?;
-        let mut expr = Expr::Comparison(Box::new(field), op, Box::new(value));
+        let mut expr = Expr::Comparison(
+            Box::new(self.parse_expr()?),
+            *(self.expect_operator()?),
+            Box::new(self.expect_literal()?),
+        );
         match self.peak_next_token() {
             Ok(Token::Op(new_op)) => {
                 expr = Expr::Comparison(
