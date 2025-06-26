@@ -36,7 +36,6 @@ impl ParserState {
         let mut where_clause = None;
         match self.peak_next_token()? {
             Token::Where => {
-                self.advance();
                 where_clause = Some(self.parse_where_clause()?);
             }
             _ => {}
@@ -57,10 +56,24 @@ impl ParserState {
     }
 
     fn parse_where_clause(&mut self) -> anyhow::Result<Expr> {
+        self.advance();
         let field = self.parse_expr()?;
         let op = *self.expect_operator()?;
         let value = self.expect_literal()?;
-        Ok(Expr::Comparison(Box::new(field), op, Box::new(value)))
+        let mut expr = Expr::Comparison(Box::new(field), op, Box::new(value));
+        match self.peak_next_token() {
+            Ok(Token::Op(new_op)) => {
+                expr = Expr::Comparison(
+                    Box::new(expr),
+                    *new_op,
+                    Box::new(self.parse_where_clause()?),
+                )
+            }
+            Err(e) => bail!("Error parsing where: {e:?}"),
+            _ => {}
+        }
+
+        Ok(expr)
     }
 
     fn parse_result_columns(&mut self) -> anyhow::Result<Vec<ResultColumn>> {
@@ -113,7 +126,7 @@ impl ParserState {
         self.expect_matching(|t| {
             matches!(
                 t,
-                Token::Null | Token::Int(_) | Token::Real(_) | Token::Identifier(_)
+                Token::Null | Token::Int(_) | Token::Real(_) | Token::String(_)
             )
         })
         .map(|t| t.as_literal().unwrap())

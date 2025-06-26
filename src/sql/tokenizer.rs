@@ -56,7 +56,7 @@ impl Token {
             Token::Int(i) => Some(Expr::Int(*i)),
             Token::Real(i) => Some(Expr::Real(*i)),
             Token::Null => Some(Expr::Null),
-            Token::Identifier(v) => Some(Expr::Text(v.clone())),
+            Token::String(v) => Some(Expr::Text(v.clone())),
             _ => None,
         }
     }
@@ -126,6 +126,9 @@ pub fn tokenize(input: &str) -> anyhow::Result<Vec<Token>> {
                     "where" => tokens.push(Token::Where),
                     "as" => tokens.push(Token::As),
                     "from" => tokens.push(Token::From),
+                    "and" => tokens.push(Token::Op(Ops::And)),
+                    "or" => tokens.push(Token::Op(Ops::Or)),
+                    "null" => tokens.push(Token::Null),
                     _ => tokens.push(Token::Identifier(ident)),
                 }
             }
