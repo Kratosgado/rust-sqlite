@@ -71,25 +71,33 @@ impl<'d> Planner<'d> {
         println!("-----------------------------------------------------------------------------------------------------------------------");
 
         let operator = if let Some(Expr::Comparison(l, op, r)) = &select.core.where_clause {
-            if let Expr::Text(field) = &l.deref() {
-                let idx = table
-                    .columns
-                    .iter()
-                    .enumerate()
-                    .find(|(_, c)| c.name == *field)
-                    .with_context(|| format!("invalid where field: {}", field))?
-                    .0;
-                Operator::SeqScanWithPredicate(SeqScanWithPredicate::new(
-                    &columns,
-                    self.db.scanner(table.first_page),
-                    Expr::Comparison(Box::new(Expr::Int(idx as i64)), *op, r.clone()),
-                ));
+            match &l.deref() {
+                Expr::Null => todo!(),
+                Expr::Int(_) => todo!(),
+                Expr::Real(_) => todo!(),
+                Expr::Column(field) | Expr::Text(field) => {
+                    let idx = table
+                        .columns
+                        .iter()
+                        .enumerate()
+                        .find(|(_, c)| c.name == *field)
+                        .with_context(|| format!("invalid where field: {}", field))?
+                        .0;
+                    Operator::SeqScanWithPredicate(SeqScanWithPredicate::new(
+                        &columns,
+                        self.db.scanner(table.first_page),
+                        Expr::Comparison(Box::new(Expr::Alias(idx as i64)), *op, r.clone()),
+                    ))
+                }
+                Expr::Comparison(expr, ops, expr1) => {
+                    Operator::SeqScanWithPredicate(SeqScanWithPredicate::new(
+                        &columns,
+                        self.db.scanner(table.first_page),
+                        Expr::Comparison(expr.clone(), *ops, expr1.clone()),
+                    ))
+                }
+                Expr::Alias(_) => todo!(),
             }
-            Operator::SeqScanWithPredicate(SeqScanWithPredicate::new(
-                &columns,
-                self.db.scanner(table.first_page),
-                select.core.where_clause.as_ref().unwrap().clone(),
-            ))
         } else {
             Operator::SeqScan(SeqScan::new(&columns, self.db.scanner(table.first_page)))
         };

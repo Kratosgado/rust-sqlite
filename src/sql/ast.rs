@@ -33,6 +33,7 @@ pub struct ExprResultColumn {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Column(String),
+    Alias(i64),
     Null,
     Int(i64),
     Real(f64),
