@@ -30,7 +30,7 @@ fn cli(mut db: Db) -> anyhow::Result<()> {
 fn eval_query(db: &Db, query: &str) -> anyhow::Result<()> {
     let parsed_query = sql::parser::parse_statement(query, false)?;
     let mut op = engine::plan::Planner::new(db).compile(&parsed_query)?;
-    println!("compiled: {op:?}");
+    // println!("compiled: {op:?}");
 
     while let Some(values) = op.next_row()? {
         let formated = values

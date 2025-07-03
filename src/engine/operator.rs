@@ -1,7 +1,12 @@
+use std::ops::Deref;
+
 use anyhow::Context;
 
 use crate::{
-    cursor::{scanner::Scanner, value::OwnedValue},
+    cursor::{
+        scanner::Scanner,
+        value::{OwnedValue, Value},
+    },
     sql::ast::Expr,
 };
 
@@ -73,16 +78,17 @@ impl SeqScanWithPredicate {
     }
 
     fn next_row(&mut self) -> anyhow::Result<Option<&[OwnedValue]>> {
-        let Expr::Comparison(l, o, r) = &self.predicate else {
+        let Expr::Comparison(l, op, r) = &self.predicate else {
             anyhow::bail!("Expected a truthy value")
         };
         loop {
             let Some(record) = self.scanner.next_record()? else {
                 return Ok(None);
             };
-            // if !record.field(pred.field).unwrap().compare(&pred.value) {
-            //     continue;
-            // }
+            let v = record.field(l.as_int()?).unwrap();
+            if !op.compare(v, r.deref().into()) {
+                continue;
+            }
 
             for (i, &n) in self.fields.iter().enumerate() {
                 self.row_buffer[i] = record.owned_field(n).context("missing record field")?;

@@ -1,6 +1,8 @@
-use std::{borrow::Cow, rc::Rc};
+use std::{borrow::Cow, ops::Deref, rc::Rc};
 
-#[derive(Debug, Clone)]
+use crate::sql::ast::Expr;
+
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub enum Value<'p> {
     Null,
     String(Cow<'p, str>),
@@ -23,6 +25,30 @@ impl<'p> Value<'p> {
             Some(*i)
         } else {
             None
+        }
+    }
+    #[inline(always)]
+    pub fn compare(&self, v: &Expr) -> bool {
+        match (self, v) {
+            (Value::Null, Expr::Null) => true,
+            (Value::String(s), Expr::Text(t)) => s == t,
+            (Value::Int(i), Expr::Int(t)) => i == t,
+            _ => false,
+        }
+        //
+    }
+}
+
+impl<'p> From<&Expr> for Value<'p> {
+    fn from(value: &Expr) -> Self {
+        match value {
+            Expr::Column(_) => todo!(),
+            Expr::Alias(_) => todo!(),
+            Expr::Null => Value::Null,
+            Expr::Int(i) => Value::Int(*i),
+            Expr::Real(i) => Value::Float(*i),
+            Expr::Text(i) => Value::String(Cow::Owned(i.clone())),
+            Expr::Comparison(expr, ops, expr1) => todo!(),
         }
     }
 }

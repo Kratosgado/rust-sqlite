@@ -1,3 +1,7 @@
+use std::ops::Deref;
+
+use anyhow::{Context, Ok, Result};
+
 use super::tokenizer::Ops;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -39,6 +43,22 @@ pub enum Expr {
     Real(f64),
     Text(String),
     Comparison(Box<Expr>, Ops, Box<Expr>),
+}
+
+impl Expr {
+    pub fn as_int(&self) -> anyhow::Result<usize> {
+        match self {
+            Expr::Alias(i) => Ok(*i as usize),
+            _ => anyhow::bail!("Expected an integer, recieved"),
+        }
+    }
+    pub fn as_str(&self) -> anyhow::Result<&String> {
+        match &self {
+            Expr::Column(s) => Ok(s),
+            Expr::Text(s) => Ok(s),
+            _ => anyhow::bail!("Unexpected a string"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

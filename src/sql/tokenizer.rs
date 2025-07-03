@@ -1,5 +1,7 @@
 use anyhow::bail;
 
+use crate::cursor::value::Value;
+
 use super::ast::Expr;
 
 #[derive(Debug, PartialEq)]
@@ -34,6 +36,21 @@ pub enum Ops {
     Goe,
     And,
     Or,
+}
+
+impl Ops {
+    pub fn compare(&self, l: Value, r: Value) -> bool {
+        match self {
+            Ops::Eq => l == r,
+            Ops::Ne => l != r,
+            Ops::Lt => l < r,
+            Ops::Gt => l > r,
+            Ops::Loe => l <= r,
+            Ops::Goe => l >= r,
+            Ops::And => todo!(),
+            Ops::Or => todo!(),
+        }
+    }
 }
 
 impl Token {
