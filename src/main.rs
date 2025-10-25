@@ -4,65 +4,65 @@ use anyhow::Context;
 use rust_sqlite::{db::Db, engine, sql};
 
 fn main() -> anyhow::Result<()> {
-    let database = Db::from_file(std::env::args().nth(1).context("missing db file")?)?;
-    cli(database)
+  let database = Db::from_file(std::env::args().nth(1).context("missing db file")?)?;
+  cli(database)
 }
 
 fn cli(mut db: Db) -> anyhow::Result<()> {
-    print_flushed("rqlite> ")?;
+  print_flushed("rqlite> ")?;
 
-    let mut line_buffer = String::new();
+  let mut line_buffer = String::new();
 
-    while stdin().lock().read_line(&mut line_buffer).is_ok() {
-        match line_buffer.trim() {
-            ".help" => display_help(),
-            ".exit" => break,
-            ".tables" => display_tables(&mut db)?,
-            stmt => eval_query(&db, stmt).unwrap_or_else(|e| println!("Error: {e}")),
-        }
-
-        print_flushed("\nrqlite> ")?;
-        line_buffer.clear();
+  while stdin().lock().read_line(&mut line_buffer).is_ok() {
+    match line_buffer.trim() {
+      ".help" => display_help(),
+      ".exit" => break,
+      ".tables" => display_tables(&mut db)?,
+      stmt => eval_query(&db, stmt).unwrap_or_else(|e| println!("Error: {e}")),
     }
-    Ok(())
+
+    print_flushed("\nrqlite> ")?;
+    line_buffer.clear();
+  }
+  Ok(())
 }
 
 fn eval_query(db: &Db, query: &str) -> anyhow::Result<()> {
-    let parsed_query = sql::parser::parse_statement(query, false)?;
-    let mut op = engine::plan::Planner::new(db).compile(&parsed_query)?;
-    // println!("compiled: {op:?}");
+  let parsed_query = sql::parser::parse_statement(query, false)?;
+  let mut op = engine::plan::Planner::new(db).compile(&parsed_query)?;
+  // println!("compiled: {op:?}");
 
-    while let Some(values) = op.next_row()? {
-        let formated = values
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join("\t| ");
+  while let Some(values) = op.next_row()? {
+    let formated = values
+      .iter()
+      .map(ToString::to_string)
+      .collect::<Vec<_>>()
+      .join("\t| ");
 
-        println!("{formated}");
-    }
+    println!("{formated}");
+  }
 
-    Ok(())
+  Ok(())
 }
 
 fn display_tables(db: &mut Db) -> anyhow::Result<()> {
-    for table in &db.tables_metadata {
-        print!("{} ", &table.name)
-    }
+  for table in &db.tables_metadata {
+    print!("{} ", &table.name)
+  }
 
-    Ok(())
+  Ok(())
 }
 
 fn display_help() {
-    print!(
-        "MAN PAGE!\n
+  print!(
+    "MAN PAGE!\n
         .tables -- display tables.
         .help -- display help.
         .exit -- exit REPL "
-    )
+  )
 }
 
 fn print_flushed(s: &str) -> anyhow::Result<()> {
-    print!("{}", s);
-    stdout().flush().context("flush stdout")
+  print!("{}", s);
+  stdout().flush().context("flush stdout")
 }

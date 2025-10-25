@@ -54,6 +54,7 @@ impl<'p> From<&Expr> for Value<'p> {
 }
 
 #[derive(Debug, Clone)]
+#[derive(PartialEq)]  // Added for testing
 pub enum OwnedValue {
     Null,
     String(Rc<String>),
