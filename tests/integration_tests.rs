@@ -2,12 +2,8 @@ use rust_sqlite::db::Db;
 
 #[test]
 fn test_read_existing_database() {
-  // Test reading an existing database file
-  // This assumes that minimal_test.db or queries_test.db exists in the project root
   let result = Db::from_file("minimal_test.db");
 
-  // If the test database file exists, this should succeed
-  // If not, we'll at least test that the error path works
   if std::path::Path::new("minimal_test.db").exists() {
     assert!(result.is_ok());
   } else {
@@ -40,7 +36,7 @@ fn test_read_queries_database() {
 //
 #[cfg(test)]
 mod parser_tests {
-  use rust_sqlite::sql::ast::{ResultColumn, SelectStatement, Statement};
+  use rust_sqlite::sql::ast::{ResultColumn, Statement};
   use rust_sqlite::sql::parser::parse_statement;
 
   #[test]
