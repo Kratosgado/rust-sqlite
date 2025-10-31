@@ -1,0 +1,15 @@
+## TODO
+
+### Completed
+
+- [x] Generate `GEMINI.md` file
+- [x] Explore the codebase
+- [x] Fix warnings
+
+### Next Steps
+
+- [ ] Implement support for `INSERT` statements
+- [ ] Implement support for `UPDATE` statements
+- [ ] Implement support for `DELETE` statements
+- [ ] Implement support for indexes
+- [ ] Implement support for transactions
