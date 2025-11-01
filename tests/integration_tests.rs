@@ -57,6 +57,7 @@ mod integration {
   }
 
   fn execute_query(query: &str) {
+    println!("{query}");
     let db = &Db::from_file("queries_test.db").unwrap();
     // Test parsing a statement
     let parsed = &parse_statement(query, false).unwrap();

@@ -1,10 +1,12 @@
-use std::ops::Deref;
-
-use anyhow::Context;
+use anyhow::{Context, Ok};
 
 use crate::{
-  cursor::{scanner::Scanner, value::OwnedValue},
-  sql::ast::Expr,
+  cursor::{
+    cursor::Cursor,
+    scanner::Scanner,
+    value::{OwnedValue, Value},
+  },
+  sql::ast::{Comparison, Expr},
 };
 
 #[derive(Debug)]
@@ -75,16 +77,11 @@ impl SeqScanWithPredicate {
   }
 
   fn next_row(&mut self) -> anyhow::Result<Option<&[OwnedValue]>> {
-    println!("{:?}", self.predicate);
-    let Expr::Comparison(l, op, r) = &self.predicate else {
-      anyhow::bail!("Expected a truthy value")
-    };
     loop {
       let Some(record) = self.scanner.next_record()? else {
         return Ok(None);
       };
-      let v = record.field(l.as_int()?).unwrap();
-      if !op.compare(v, r.deref().into()) {
+      if !apply_where(&record, self.predicate.as_comparison()?)? {
         continue;
       }
 
@@ -94,5 +91,21 @@ impl SeqScanWithPredicate {
       break;
     }
     Ok(Some(&self.row_buffer))
+  }
+}
+
+fn apply_where(record: &Cursor, predicate: Comparison) -> anyhow::Result<bool> {
+  match predicate.l {
+    Expr::Alias(_) => {
+      let v = record.field(predicate.l.as_int()?).unwrap();
+      let r = predicate.r;
+      Ok(predicate.op.compare(v, Value::from(&r)))
+    }
+    Expr::Comparison(_, _, _) => {
+      let left = apply_where(record, predicate.l.as_comparison()?)?;
+      let right = apply_where(record, predicate.r.as_comparison()?)?;
+      Ok(predicate.op.compare(left.into(), right.into()))
+    }
+    _ => anyhow::bail!("Expected a truthy value"),
   }
 }

@@ -32,7 +32,7 @@ impl Db {
       .context("read db header")?;
 
     let header = dbheader::parse_header(&header_buffer).context("parse db header")?;
-    println!("{header:?}");
+    // println!("{header:?}");
 
     let pager = Pager::new(file, header.page_size as usize);
     let tables_metadata = Self::collect_tables_metadata(pager.clone())?;

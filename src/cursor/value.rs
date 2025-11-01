@@ -53,6 +53,24 @@ impl<'p> From<&Expr> for Value<'p> {
   }
 }
 
+impl<'p> From<bool> for Value<'p> {
+  fn from(value: bool) -> Self {
+    match value {
+      true => Value::Int(1),
+      false => Value::Int(0),
+    }
+  }
+}
+
+impl<'p> From<Value<'p>> for bool {
+  fn from(value: Value<'p>) -> Self {
+    match value {
+      Value::Int(v) => v == 1,
+      _ => false,
+    }
+  }
+}
+
 #[derive(Debug, Clone, PartialEq)] // Added for testing
 pub enum OwnedValue {
   Null,

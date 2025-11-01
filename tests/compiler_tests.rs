@@ -47,21 +47,16 @@ mod compiler {
     let op = Planner::new(db).compile(parsed);
     assert!(op.is_ok());
     match op.unwrap() {
-      Operator::SeqScanWithPredicate(s) => match s.predicate {
-        Expr::Comparison(l, ops, r) => {
-          assert_eq!(*l, Expr::Alias(0));
-          assert_eq!(ops, Ops::Eq);
-          assert_eq!(*r, Expr::Int(10));
-        }
-        _ => panic!("Expected a comparison"),
-      },
+      Operator::SeqScanWithPredicate(s) => {
+        assert_comparison(s.predicate, Expr::Alias(0), Ops::Eq, Expr::Int(10));
+      }
       _ => panic!("Expected Sequential Scan with predicate operation"),
     }
   }
 
   #[test]
   fn select_with_where_compound_clause() {
-    let query = "SELECT * FROM users WHERE id = 10 or name = 'kratos';";
+    let query = "SELECT * FROM users WHERE id = 10 or name = 'k';";
     let db = &Db::from_file("queries_test.db").unwrap();
     let parsed = &parse_statement(query, false).unwrap();
     let op = Planner::new(db).compile(parsed);
@@ -69,23 +64,9 @@ mod compiler {
     match op.unwrap() {
       Operator::SeqScanWithPredicate(s) => match s.predicate {
         Expr::Comparison(l, ops, r) => {
-          match *l {
-            Expr::Comparison(l, ops, r) => {
-              assert_eq!(*l, Expr::Alias(0));
-              assert_eq!(ops, Ops::Eq);
-              assert_eq!(*r, Expr::Int(10));
-            }
-            _ => panic!("Expected a comparison"),
-          }
+          assert_comparison(*l, Expr::Alias(0), Ops::Eq, Expr::Int(10));
           assert_eq!(ops, Ops::Or);
-          match *r {
-            Expr::Comparison(l, ops, r) => {
-              assert_eq!(*l, Expr::Alias(1));
-              assert_eq!(ops, Ops::Eq);
-              assert_eq!(*r, Expr::Text("kratos".to_string()));
-            }
-            _ => panic!("Expected a comparison"),
-          }
+          assert_comparison(*r, Expr::Alias(1), Ops::Eq, Expr::Text("k".to_string()));
         }
         _ => panic!("Expected a comparison"),
       },
@@ -144,5 +125,16 @@ mod compiler {
     let result = parse_statement(query, false);
     assert!(result.is_err());
     assert!(result.unwrap_err().to_string().contains("unsupported type"));
+  }
+
+  fn assert_comparison(e: Expr, lc: Expr, o: Ops, rc: Expr) {
+    match e {
+      Expr::Comparison(l, ops, r) => {
+        assert_eq!(*l, lc);
+        assert_eq!(ops, o);
+        assert_eq!(*r, rc);
+      }
+      _ => panic!("Expected a comparison"),
+    }
   }
 }

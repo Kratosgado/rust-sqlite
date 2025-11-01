@@ -47,8 +47,8 @@ impl Ops {
       Ops::Gt => l > r,
       Ops::Loe => l <= r,
       Ops::Goe => l >= r,
-      Ops::And => todo!(),
-      Ops::Or => todo!(),
+      Ops::And => l.into() && r.into(),
+      Ops::Or => l.into() || r.into(),
     }
   }
 }
