@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use anyhow::Ok;
 
 use super::tokenizer::Ops;
@@ -32,6 +34,13 @@ pub struct ExprResultColumn {
   pub alias: Option<String>,
 }
 
+#[derive(Debug)]
+pub struct Comparison {
+  pub l: Expr,
+  pub op: Ops,
+  pub r: Expr,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
   Column(String),
@@ -55,6 +64,17 @@ impl Expr {
       Expr::Column(s) => Ok(s),
       Expr::Text(s) => Ok(s),
       _ => anyhow::bail!("Unexpected a string"),
+    }
+  }
+
+  pub fn as_comparison(&self) -> anyhow::Result<Comparison> {
+    match &self {
+      Expr::Comparison(l, op, r) => Ok(Comparison {
+        l: l.deref().clone(),
+        op: *op,
+        r: r.deref().clone(),
+      }),
+      _ => anyhow::bail!("Expected a Comparison"),
     }
   }
 }

@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod lexer {
   use std::f64::consts::PI;
 
   use rust_sqlite::sql::{
@@ -8,7 +8,7 @@ mod tests {
   };
 
   #[test]
-  fn test_tokenize_simple_select() {
+  fn simple_select() {
     let input = "SELECT * FROM users";
     let tokens = tokenize(input).unwrap();
 
@@ -24,7 +24,7 @@ mod tests {
   }
 
   #[test]
-  fn test_tokenize_create_table() {
+  fn create_table() {
     let input = "CREATE TABLE users (id INTEGER, name TEXT)";
     let tokens = tokenize(input).unwrap();
 
@@ -46,7 +46,7 @@ mod tests {
   }
 
   #[test]
-  fn test_tokenize_where_clause() {
+  fn where_clause() {
     let input = "SELECT * FROM users WHERE id = 10";
     let tokens = tokenize(input).unwrap();
 
@@ -66,7 +66,7 @@ mod tests {
   }
 
   #[test]
-  fn test_tokenize_comparison_operators() {
+  fn comparison_operators() {
     let input = "= != < > <= >=";
     let tokens = tokenize(input).unwrap();
 
@@ -84,7 +84,7 @@ mod tests {
   }
 
   #[test]
-  fn test_tokenize_numbers() {
+  fn numbers() {
     let input = "123 45.67";
     let tokens = tokenize(input).unwrap();
 
@@ -92,7 +92,7 @@ mod tests {
   }
 
   #[test]
-  fn test_tokenize_string() {
+  fn string() {
     let input = "'hello world'";
     let tokens = tokenize(input).unwrap();
 
@@ -100,7 +100,7 @@ mod tests {
   }
 
   #[test]
-  fn test_tokenize_null() {
+  fn null() {
     let input = "NULL";
     let tokens = tokenize(input).unwrap();
 
@@ -108,7 +108,7 @@ mod tests {
   }
 
   #[test]
-  fn test_tokenize_logical_operators() {
+  fn logical_operators() {
     let input = "AND OR";
     let tokens = tokenize(input).unwrap();
 
@@ -116,7 +116,7 @@ mod tests {
   }
 
   #[test]
-  fn test_token_as_identifier() {
+  fn token_as_identifier() {
     let token = Token::Identifier("test".to_string());
     assert_eq!(token.as_identifier(), Some("test"));
 
@@ -125,7 +125,7 @@ mod tests {
   }
 
   #[test]
-  fn test_token_as_op() {
+  fn token_as_op() {
     let token = Token::Op(Ops::Eq);
     assert_eq!(token.as_op(), Some(&Ops::Eq));
 
@@ -134,7 +134,7 @@ mod tests {
   }
 
   #[test]
-  fn test_token_as_literal() {
+  fn token_as_literal() {
     let token = Token::Int(42);
     assert_eq!(token.as_literal(), Some(Expr::Int(42)));
 
@@ -152,7 +152,7 @@ mod tests {
   }
 
   #[test]
-  fn test_ops_compare() {
+  fn ops_compare() {
     // Tests for comparison operations need to be done with actual Value types
     // which are defined in cursor::value::Value
     // Since we can't easily create these values here, we'll test the logic

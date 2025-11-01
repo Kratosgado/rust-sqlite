@@ -122,7 +122,7 @@ pub fn tokenize(input: &str) -> anyhow::Result<Vec<Token>> {
         while let Some(cc) = chars.next_if(|&cc| cc.is_alphanumeric() || cc == '_' || cc == ' ') {
           value.extend(cc.to_lowercase());
         }
-        if let Some(_) = chars.next_if(|&cc| cc == '\'' || cc == '"') {
+        if chars.next_if(|&cc| cc == '\'' || cc == '"').is_some() {
           tokens.push(Token::String(value));
         } else {
           bail!("Unterminated string '{value}")

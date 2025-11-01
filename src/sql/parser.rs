@@ -200,14 +200,11 @@ impl ParserState {
 
 pub fn parse_statement(input: &str, trailing_semicolon: bool) -> anyhow::Result<Statement> {
   let tokens = tokenizer::tokenize(input)?;
-  println!("tokens: {tokens:?}");
   let mut state = ParserState::new(tokens);
   let statements = state.parse_statement()?;
   if trailing_semicolon {
     state.expect_eq(Token::SemiColon)?;
   }
-
-  println!("parsed: {statements:?}");
   Ok(statements)
 }
 

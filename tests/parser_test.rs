@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod parser {
   use rust_sqlite::sql::{
     ast::{ColumnDef, Expr, ResultColumn, SelectFrom, Statement, Type},
     parser::{parse_create_statement, parse_statement},
@@ -7,7 +7,7 @@ mod tests {
   };
 
   #[test]
-  fn test_parse_simple_select() {
+  fn simple_select() {
     let query = "SELECT * FROM users;";
     let result = parse_statement(query, false);
     assert!(result.is_ok());
@@ -30,7 +30,7 @@ mod tests {
   }
 
   #[test]
-  fn test_parse_select_with_columns() {
+  fn select_with_columns() {
     let query = "SELECT id, name FROM users;";
     let result = parse_statement(query, false);
     assert!(result.is_ok());
@@ -53,7 +53,7 @@ mod tests {
   }
 
   #[test]
-  fn test_parse_create_table() {
+  fn create_table() {
     let query = "CREATE TABLE users (id INTEGER, name TEXT)";
     let result = parse_statement(query, false);
     assert!(result.is_ok());
@@ -83,7 +83,7 @@ mod tests {
   }
 
   #[test]
-  fn test_parse_create_table_with_various_types() {
+  fn create_table_with_various_types() {
     let query = "CREATE TABLE test (id INTEGER, value REAL, data TEXT, raw BLOB)";
     let result = parse_statement(query, false);
     assert!(result.is_ok());
@@ -99,29 +99,16 @@ mod tests {
   }
 
   #[test]
-  fn test_parse_select_with_where_clause() {
+  fn select_with_where_clause() {
     let query = "SELECT * FROM users WHERE id = 10;";
     let result = parse_statement(query, false);
     assert!(result.is_ok());
 
     if let Ok(Statement::Select(select_stmt)) = result {
       if let Some(Expr::Comparison(left, op, right)) = select_stmt.core.where_clause {
-        if let Expr::Column(field) = left.as_ref() {
-          assert_eq!(field, "id");
-        } else {
-          panic!("Expected column in where clause");
-        }
-
-        match op {
-          Ops::Eq => {} // Expected
-          _ => panic!("Expected equality operator"),
-        }
-
-        if let Expr::Int(val) = right.as_ref() {
-          assert_eq!(*val, 10);
-        } else {
-          panic!("Expected integer in where clause");
-        }
+        assert_eq!(*left, Expr::Column("id".to_string()));
+        assert_eq!(op, Ops::Eq);
+        assert_eq!(*right, Expr::Int(10));
       } else {
         panic!("Expected where clause with comparison");
       }
@@ -129,9 +116,37 @@ mod tests {
       panic!("Expected SELECT statement");
     }
   }
+  #[test]
+  fn select_with_where_compound_clause() {
+    let query = "SELECT * FROM users WHERE id = 10 or name = 'kratos';";
+    let result = parse_statement(query, false);
+    assert!(result.is_ok());
+
+    if let Ok(Statement::Select(select_stmt)) = result {
+      if let Some(Expr::Comparison(left, op, right)) = select_stmt.core.where_clause {
+        if let Expr::Comparison(left, op, right) = *left {
+          assert_eq!(*left, Expr::Column("id".to_string()));
+          assert_eq!(op, Ops::Eq);
+          assert_eq!(*right, Expr::Int(10));
+        } else {
+          panic!("Expected where clause with comparison");
+        }
+        assert_eq!(op, Ops::Or);
+        if let Expr::Comparison(left, op, right) = *right {
+          assert_eq!(*left, Expr::Column("name".to_string()));
+          assert_eq!(op, Ops::Eq);
+          assert_eq!(*right, Expr::Text("kratos".to_string()));
+        } else {
+          panic!("Expected where clause with comparison");
+        }
+      } else {
+        panic!("Expected SELECT statement");
+      }
+    }
+  }
 
   #[test]
-  fn test_parse_create_statement_function() {
+  fn create_statement_function() {
     let query = "CREATE TABLE users (id INTEGER)";
     let result = parse_create_statement(query);
     assert!(result.is_ok());
@@ -143,14 +158,14 @@ mod tests {
   }
 
   #[test]
-  fn test_parse_invalid_statement() {
+  fn invalid_statement() {
     let query = "INVALID statement";
     let result = parse_statement(query, false);
     assert!(result.is_err());
   }
 
   #[test]
-  fn test_parse_create_with_unsupported_type() {
+  fn create_with_unsupported_type() {
     let query = "CREATE TABLE test (data INVALID_TYPE)";
     let result = parse_statement(query, false);
     assert!(result.is_err());

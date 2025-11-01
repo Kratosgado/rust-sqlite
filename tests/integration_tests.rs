@@ -1,15 +1,14 @@
 #[cfg(test)]
-mod integration_tests {
+mod integration {
   use rust_sqlite::db::Db;
   use rust_sqlite::engine::plan::Planner;
   use rust_sqlite::sql::parser::parse_statement;
 
   const USER_QUERY: &str = "SELECT * FROM users;";
   const USER_WHERE_QUERY: &str = "SELECT * FROM users where id = 3;";
-  const USER_WHERE_COMPOUND_QUERY: &str = "SELECT * FROM users where id = 3 and name = 'prince';";
 
   #[test]
-  fn test_read_existing_database() {
+  fn read_existing_database() {
     let result = Db::from_file("no.db");
 
     if std::path::Path::new("no.db").exists() {
@@ -21,7 +20,7 @@ mod integration_tests {
   }
 
   #[test]
-  fn test_read_queries_database() {
+  fn read_queries_database() {
     // Test reading the queries_test.db file if it exists
     let result = Db::from_file("queries_test.db");
 
@@ -42,17 +41,18 @@ mod integration_tests {
   }
 
   #[test]
-  fn test_execute_simple_query() {
+  fn execute_simple_query() {
     execute_query(USER_QUERY);
   }
 
   #[test]
-  fn test_execute_simple_where_query() {
+  fn execute_simple_where_query() {
     execute_query(USER_WHERE_QUERY);
   }
 
   #[test]
-  fn test_execute_where_compound_query() {
+  fn execute_where_compound_query() {
+    const USER_WHERE_COMPOUND_QUERY: &str = "SELECT * FROM users where id = 3 and name = 'prince';";
     execute_query(USER_WHERE_COMPOUND_QUERY);
   }
 

@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod tests {
+mod header {
   use rust_sqlite::dbheader::parse_header;
   use rust_sqlite::dbheader::*;
   const HEADER_PAGE_SIZE_OFFSET: usize = 16;
@@ -14,7 +14,7 @@ mod tests {
   const SQ_VERSION_OFFSET: usize = 96;
 
   #[test]
-  fn test_parse_valid_header() {
+  fn valid_header() {
     let mut buffer = [0u8; HEADER_SIZE];
     // Write the SQLite header prefix
     buffer[0..16].copy_from_slice(b"SQLite format 3\0");
@@ -42,7 +42,7 @@ mod tests {
   }
 
   #[test]
-  fn test_parse_header_invalid_prefix() {
+  fn invalid_prefix() {
     let mut buffer = [0u8; HEADER_SIZE];
     // Write an invalid prefix
     buffer[0..16].copy_from_slice(b"Invalid prefi  \0");
@@ -56,7 +56,7 @@ mod tests {
   }
 
   #[test]
-  fn test_parse_header_invalid_page_size() {
+  fn invalid_page_size() {
     let mut buffer = [0u8; HEADER_SIZE];
     // Write the valid SQLite header prefix
     buffer[0..16].copy_from_slice(b"SQLite format 3\0");
@@ -73,7 +73,7 @@ mod tests {
   }
 
   #[test]
-  fn test_parse_header_max_page_size() {
+  fn max_page_size() {
     let mut buffer = [0u8; HEADER_SIZE];
     // Write the valid SQLite header prefix
     buffer[0..16].copy_from_slice(b"SQLite format 3\0");
@@ -86,7 +86,7 @@ mod tests {
   }
 
   #[test]
-  fn test_parse_header_power_of_two_page_size() {
+  fn power_of_two_page_size() {
     let mut buffer = [0u8; HEADER_SIZE];
     // Write the valid SQLite header prefix
     buffer[0..16].copy_from_slice(b"SQLite format 3\0");

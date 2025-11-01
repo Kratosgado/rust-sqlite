@@ -1,13 +1,9 @@
-
 use anyhow::{bail, Context};
 
 use crate::{
   db::{Db, TableMetadata},
   engine::operator::SeqScanWithPredicate,
-  sql::{
-    ast::{self, Expr, ResultColumn, SelectFrom},
-    tokenizer::Ops,
-  },
+  sql::ast::{self, Comparison, Expr, ResultColumn, SelectFrom},
 };
 
 use super::operator::{Operator, SeqScan};
@@ -72,8 +68,11 @@ impl<'d> Planner<'d> {
     println!("{formatted}");
     println!("-----------------------------------------------------------------------------------------------------------------------");
 
-    let operator = if let Some(Expr::Comparison(l, op, r)) = &select.core.where_clause {
-      let predicate = self.compile_expr(*l.clone(), *op, r.clone(), table)?;
+    let operator = if select.core.where_clause.is_some() {
+      let predicate = compile_expr(
+        select.core.where_clause.as_ref().unwrap().as_comparison()?,
+        table,
+      )?;
       Operator::SeqScanWithPredicate(SeqScanWithPredicate::new(
         &columns,
         self.db.scanner(table.first_page),
@@ -85,28 +84,29 @@ impl<'d> Planner<'d> {
 
     Ok(operator)
   }
-
-  fn compile_expr(
-    &self,
-    l: Expr,
-    op: Ops,
-    r: Box<Expr>,
-    table: &TableMetadata,
-  ) -> anyhow::Result<Expr> {
-    match l {
-      Expr::Column(field) | Expr::Text(field) => {
-        let idx = table
-          .columns
-          .iter()
-          .enumerate()
-          .find(|(_, c)| c.name == *field)
-          .with_context(|| format!("invalid where field: {}", field))?
-          .0;
-        Ok(Expr::Comparison(Box::new(Expr::Alias(idx as i64)), op, r))
-      }
-      Expr::Comparison(l, ops, r1) => self.compile_expr(*l, ops, r1, table),
-      Expr::Alias(_) => unimplemented!(),
-      expr => anyhow::bail!("Expected a column or an alias. Got a value {expr:?}"),
+}
+fn compile_expr(c: Comparison, table: &TableMetadata) -> anyhow::Result<Expr> {
+  match &c.l {
+    Expr::Column(field) | Expr::Text(field) => {
+      let idx = table
+        .columns
+        .iter()
+        .enumerate()
+        .find(|(_, c)| c.name == *field)
+        .with_context(|| format!("invalid where field: {}", field))?
+        .0;
+      Ok(Expr::Comparison(
+        Box::new(Expr::Alias(idx as i64)),
+        c.op,
+        Box::new(c.r),
+      ))
     }
+    Expr::Comparison(_, _, _) => {
+      let left = compile_expr(c.l.as_comparison()?, table)?;
+      let right = compile_expr(c.r.as_comparison()?, table)?;
+      Ok(Expr::Comparison(Box::new(left), c.op, Box::new(right)))
+    }
+    Expr::Alias(_) => unimplemented!(),
+    expr => anyhow::bail!("Expected a column or an alias. Got a value {expr:?}"),
   }
 }
