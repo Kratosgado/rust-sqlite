@@ -48,6 +48,7 @@ pub enum Expr {
   Null,
   Int(i64),
   Real(f64),
+  Bool(bool),
   Text(String),
   Comparison(Box<Expr>, Ops, Box<Expr>),
 }
@@ -100,6 +101,7 @@ pub struct CreateTableStatement {
 pub enum Type {
   Integer,
   Real,
+  Bool,
   Text,
   Blob,
 }

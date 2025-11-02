@@ -22,6 +22,7 @@ pub enum Token {
 
   Int(i64),
   Real(f64),
+  Bool(bool),
   String(String),
   Null,
 }
@@ -39,6 +40,7 @@ pub enum Ops {
 }
 
 impl Ops {
+  #[inline(always)]
   pub fn compare(&self, l: Value, r: Value) -> bool {
     match self {
       Ops::Eq => l == r,
@@ -72,6 +74,7 @@ impl Token {
     match self {
       Token::Int(i) => Some(Expr::Int(*i)),
       Token::Real(i) => Some(Expr::Real(*i)),
+      Token::Bool(v) => Some(Expr::Bool(*v)),
       Token::Null => Some(Expr::Null),
       Token::String(v) => Some(Expr::Text(v.clone())),
       _ => None,

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod parser {
   use rust_sqlite::sql::{
-    ast::{ColumnDef, Expr, ResultColumn, SelectFrom, Statement, Type},
+    ast::{ColumnDef, Expr, ExprResultColumn, ResultColumn, SelectFrom, Statement, Type},
     parser::{parse_create_statement, parse_statement},
     tokenizer::Ops,
   };
@@ -12,21 +12,16 @@ mod parser {
     let result = parse_statement(query, false);
     assert!(result.is_ok());
 
-    if let Ok(Statement::Select(select_stmt)) = result {
-      assert_eq!(select_stmt.core.result_columns.len(), 1);
-      if let ResultColumn::Star = &select_stmt.core.result_columns[0] {
-      } else {
-        panic!("Expected Star result column");
-      }
-
-      match &select_stmt.core.from {
-        SelectFrom::Table(table_name) => {
-          assert_eq!(table_name, "users");
-        }
-      }
-    } else {
+    let Statement::Select(select_stmt) = result.unwrap() else {
       panic!("Expected SELECT statement");
-    }
+    };
+
+    assert_eq!(select_stmt.core.result_columns.len(), 1);
+    assert_eq!(ResultColumn::Star, select_stmt.core.result_columns[0]);
+    assert_eq!(
+      select_stmt.core.from,
+      SelectFrom::Table("users".to_string())
+    );
   }
 
   #[test]
@@ -35,67 +30,61 @@ mod parser {
     let result = parse_statement(query, false);
     assert!(result.is_ok());
 
-    if let Ok(Statement::Select(select_stmt)) = result {
-      assert_eq!(select_stmt.core.result_columns.len(), 2);
-      match &select_stmt.core.result_columns[0] {
-        ResultColumn::Expr(expr_col) => {
-          if let Expr::Column(col_name) = &expr_col.expr {
-            assert_eq!(col_name, "id");
-          } else {
-            panic!("Expected column expression");
-          }
-        }
-        _ => panic!("Expected expression result column"),
-      }
-    } else {
+    let Statement::Select(select_stmt) = result.unwrap() else {
       panic!("Expected SELECT statement");
-    }
-  }
+    };
 
-  #[test]
-  fn create_table() {
-    let query = "CREATE TABLE users (id INTEGER, name TEXT)";
-    let result = parse_statement(query, false);
-    assert!(result.is_ok());
-
-    if let Ok(Statement::CreateTable(create_stmt)) = result {
-      assert_eq!(create_stmt.name, "users");
-      assert_eq!(create_stmt.columns.len(), 2);
-
-      assert_eq!(
-        create_stmt.columns[0],
-        ColumnDef {
-          name: "id".to_string(),
-          col_type: Type::Integer,
-        }
-      );
-
-      assert_eq!(
-        create_stmt.columns[1],
-        ColumnDef {
-          name: "name".to_string(),
-          col_type: Type::Text,
-        }
-      );
-    } else {
-      panic!("Expected CREATE TABLE statement");
-    }
+    assert_eq!(select_stmt.core.result_columns.len(), 2);
+    assert_eq!(
+      select_stmt.core.result_columns,
+      vec![
+        ResultColumn::Expr(ExprResultColumn {
+          expr: Expr::Column("id".to_string()),
+          alias: None
+        }),
+        ResultColumn::Expr(ExprResultColumn {
+          expr: Expr::Column("name".to_string()),
+          alias: None
+        }),
+      ]
+    );
   }
 
   #[test]
   fn create_table_with_various_types() {
-    let query = "CREATE TABLE test (id INTEGER, value REAL, data TEXT, raw BLOB)";
+    let query = "CREATE TABLE users (id INTEGER,  name TEXT, is_admin BOOL, amount REAL,raw BLOB)";
     let result = parse_statement(query, false);
     assert!(result.is_ok());
+    let Statement::CreateTable(create_stmt) = result.unwrap() else {
+      panic!("Expected SELECT statement");
+    };
 
-    if let Ok(Statement::CreateTable(create_stmt)) = result {
-      assert_eq!(create_stmt.columns[0].col_type, Type::Integer);
-      assert_eq!(create_stmt.columns[1].col_type, Type::Real);
-      assert_eq!(create_stmt.columns[2].col_type, Type::Text);
-      assert_eq!(create_stmt.columns[3].col_type, Type::Blob);
-    } else {
-      panic!("Expected CREATE TABLE statement");
-    }
+    assert_eq!(create_stmt.name, "users");
+    assert_eq!(
+      create_stmt.columns,
+      vec![
+        ColumnDef {
+          name: "id".to_string(),
+          col_type: Type::Integer,
+        },
+        ColumnDef {
+          name: "name".to_string(),
+          col_type: Type::Text,
+        },
+        ColumnDef {
+          name: "is_admin".to_string(),
+          col_type: Type::Bool,
+        },
+        ColumnDef {
+          name: "amount".to_string(),
+          col_type: Type::Real,
+        },
+        ColumnDef {
+          name: "raw".to_string(),
+          col_type: Type::Blob,
+        }
+      ]
+    );
   }
 
   #[test]

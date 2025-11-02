@@ -9,6 +9,7 @@ pub enum Value<'p> {
   Blob(Cow<'p, [u8]>),
   Int(i64),
   Float(f64),
+  Bool(bool),
 }
 
 impl<'p> Value<'p> {
@@ -27,16 +28,6 @@ impl<'p> Value<'p> {
       None
     }
   }
-  #[inline(always)]
-  pub fn compare(&self, v: &Expr) -> bool {
-    match (self, v) {
-      (Value::Null, Expr::Null) => true,
-      (Value::String(s), Expr::Text(t)) => s == t,
-      (Value::Int(i), Expr::Int(t)) => i == t,
-      _ => false,
-    }
-    //
-  }
 }
 
 impl<'p> From<&Expr> for Value<'p> {
@@ -46,6 +37,7 @@ impl<'p> From<&Expr> for Value<'p> {
       Expr::Alias(_) => todo!(),
       Expr::Null => Value::Null,
       Expr::Int(i) => Value::Int(*i),
+      Expr::Bool(v) => Value::Bool(*v),
       Expr::Real(i) => Value::Float(*i),
       Expr::Text(i) => Value::String(Cow::Owned(i.clone())),
       Expr::Comparison(_expr, _ops, _expr1) => todo!(),
@@ -55,10 +47,7 @@ impl<'p> From<&Expr> for Value<'p> {
 
 impl<'p> From<bool> for Value<'p> {
   fn from(value: bool) -> Self {
-    match value {
-      true => Value::Int(1),
-      false => Value::Int(0),
-    }
+    Value::Bool(value)
   }
 }
 
@@ -77,6 +66,7 @@ pub enum OwnedValue {
   String(Rc<String>),
   Blob(Rc<Vec<u8>>),
   Int(i64),
+  Bool(bool),
   Float(f64),
 }
 
@@ -85,6 +75,7 @@ impl<'p> From<Value<'p>> for OwnedValue {
     match value {
       Value::Null => Self::Null,
       Value::Int(i) => Self::Int(i),
+      Value::Bool(v) => Self::Bool(v),
       Value::Float(f) => Self::Float(f),
       Value::String(s) => Self::String(Rc::new(s.into_owned())),
       Value::Blob(b) => Self::Blob(Rc::new(b.into_owned())),
@@ -107,6 +98,7 @@ impl std::fmt::Display for OwnedValue {
         )
       }
       OwnedValue::String(s) => s.fmt(f),
+      OwnedValue::Bool(b) => b.fmt(f),
       OwnedValue::Int(i) => i.fmt(f),
       OwnedValue::Float(x) => x.fmt(f),
     }

@@ -34,11 +34,8 @@ impl ParserState {
     let from = self.parse_select_from()?;
 
     let mut where_clause = None;
-    match self.peak_next_token()? {
-      Token::Where => {
-        where_clause = Some(self.parse_where_clause()?);
-      }
-      _ => {}
+    if let Token::Where = self.peak_next_token()? {
+      where_clause = Some(self.parse_where_clause()?);
     }
 
     Ok(SelectStatement {
@@ -187,6 +184,7 @@ impl ParserState {
       "integer" => Type::Integer,
       "real" => Type::Real,
       "blob" => Type::Blob,
+      "bool" => Type::Bool,
       "text" | "string" => Type::Text,
       _ => bail!("unsupported type: {type_name}"),
     };
